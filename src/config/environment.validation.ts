@@ -20,6 +20,5 @@ export default Joi.object({
   DB_PASSWORD: Joi.string().required(),
   DB_DATABASE: Joi.string().required(),
 
-  TYPEORM_SYNC: Joi.boolean().default(false),
   TYPEORM_LOGGING: Joi.boolean().default(false),
 });
