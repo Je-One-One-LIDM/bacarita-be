@@ -21,6 +21,9 @@ export class Student {
   @Column({ type: 'varchar', length: 255 })
   fullName: string;
 
+  @Column({ type: 'varchar', length: 255 })
+  password: string;
+
   @Column({ nullable: true })
   token: string;
 
