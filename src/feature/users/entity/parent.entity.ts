@@ -13,6 +13,9 @@ export class Parent {
   @PrimaryColumn()
   id: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true })
+  email: string;
+
   @Column({ type: 'varchar', length: 90, unique: true })
   username: string;
 

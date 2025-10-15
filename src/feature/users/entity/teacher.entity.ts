@@ -13,6 +13,9 @@ export class Teacher {
   @PrimaryColumn()
   id: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true })
+  email: string;
+
   @Column({ type: 'varchar', length: 90, unique: true })
   username: string;
 
@@ -21,6 +24,9 @@ export class Teacher {
 
   @Column({ type: 'varchar', length: 255 })
   password: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  schoolName: string;
 
   @Column({ nullable: true })
   token: string;
