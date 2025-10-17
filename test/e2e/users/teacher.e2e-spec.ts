@@ -9,14 +9,18 @@ import {
   clearDatabase,
   dropDatabase,
 } from '../../utils/testing-database.utils';
+import { DataSource } from 'typeorm';
+import { Teacher } from 'src/feature/users/entity/teacher.entity';
 
 describe('Teachers (e2e)', () => {
   let app: INestApplication<App>;
   let requestTestAgent: TestAgent;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     app = await createTestingApp();
     requestTestAgent = request(app.getHttpServer());
+    dataSource = app.get<DataSource>(DataSource);
   });
 
   beforeEach(async () => {
@@ -54,6 +58,18 @@ describe('Teachers (e2e)', () => {
     expect(body).toHaveProperty('schoolName', 'School Name 1');
     expect(body).toHaveProperty('createdAt');
     expect(body).toHaveProperty('updatedAt');
+
+    const teacherInDb: Teacher | null = await dataSource
+      .getRepository(Teacher)
+      .findOneBy({ id: body.id });
+    expect(teacherInDb).toBeDefined();
+    expect(teacherInDb).toHaveProperty('email', 'teacher1@gmail.com');
+    expect(teacherInDb).toHaveProperty('username', 'teacher1');
+    expect(teacherInDb).toHaveProperty('fullName', 'Teacher One');
+    expect(teacherInDb!.password).not.toBe('teacher1password'); // must be hashed
+    expect(teacherInDb).toHaveProperty('schoolName', 'School Name 1');
+    expect(teacherInDb).toHaveProperty('createdAt');
+    expect(teacherInDb).toHaveProperty('updatedAt');
   });
 
   it('POST /teachers | must reject if email already registered', async () => {
