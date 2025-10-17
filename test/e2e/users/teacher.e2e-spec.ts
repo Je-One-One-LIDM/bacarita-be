@@ -10,7 +10,7 @@ import {
   dropDatabase,
 } from '../../utils/testing-database.utils';
 import { DataSource } from 'typeorm';
-import { Teacher } from 'src/feature/users/entity/teacher.entity';
+import { Teacher } from 'src/feature/users/entities/teacher.entity';
 
 describe('Teachers (e2e)', () => {
   let app: INestApplication<App>;

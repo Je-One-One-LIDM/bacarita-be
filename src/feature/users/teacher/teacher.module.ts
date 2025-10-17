@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Teacher } from '../entity/teacher.entity';
+import { Teacher } from '../entities/teacher.entity';
 import { TeacherController } from './teacher.controller';
 import { TeacherService } from './teacher.service';
 import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';

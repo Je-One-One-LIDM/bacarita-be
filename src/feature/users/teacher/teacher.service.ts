@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
 import { Repository } from 'typeorm';
-import { Teacher } from '../entity/teacher.entity';
+import { Teacher } from '../entities/teacher.entity';
 import { CreateTeacherDTO } from './dto/create-teacher.dto';
 
 @Injectable()

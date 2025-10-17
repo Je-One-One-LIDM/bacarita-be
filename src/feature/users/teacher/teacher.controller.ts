@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { DataResponse } from 'src/core/http/http-response';
-import { Teacher } from '../entity/teacher.entity';
+import { Teacher } from '../entities/teacher.entity';
 import { CreateTeacherDTO } from './dto/create-teacher.dto';
 import { TeacherService } from './teacher.service';
 

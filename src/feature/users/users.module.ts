@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Parent } from './entity/parent.entity';
-import { Student } from './entity/student.entity';
-import { Teacher } from './entity/teacher.entity';
+import { Parent } from './entities/parent.entity';
+import { Student } from './entities/student.entity';
+import { Teacher } from './entities/teacher.entity';
 import { TeacherModule } from './teacher/teacher.module';
 import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';
 
