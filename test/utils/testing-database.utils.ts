@@ -1,3 +1,4 @@
+import { INestApplication } from '@nestjs/common';
 import { connectionSource } from 'src/config/database/typeorm.config';
 import { DataSource } from 'typeorm';
 
@@ -9,4 +10,9 @@ async function dropDatabase(): Promise<void> {
   await appDataSource.destroy();
 }
 
-export { dropDatabase };
+async function clearDatabase(app: INestApplication): Promise<void> {
+  const dataSource: DataSource = app.get<DataSource>(DataSource);
+  await dataSource.synchronize(true);
+}
+
+export { clearDatabase, dropDatabase };
