@@ -35,17 +35,12 @@ export class AuthGuard implements CanActivate {
     const token: string = authHeader.split(' ')[1];
     if (!token) throw new UnauthorizedException();
 
-    let user: ICurrentUser | null;
-    try {
-      user = this.authService.verifyJwtToken(token);
-    } catch {
-      throw new UnauthorizedException('Invalid or expired token');
-    }
+    const user: ICurrentUser | null = this.authService.verifyJwtToken(token);
+    if (!user) throw new UnauthorizedException();
 
     if (user) {
       // Attach user to request
       request[AUTH_REQUEST_USER_KEY] = user;
-
       // No roles required → allow anyone
       if (!requiredRoles || requiredRoles.length === 0) return true;
 
@@ -58,6 +53,7 @@ export class AuthGuard implements CanActivate {
       }
     }
 
-    throw new ForbiddenException();
+    // user is good
+    return true;
   }
 }

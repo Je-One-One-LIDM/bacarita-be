@@ -29,7 +29,7 @@ export class Teacher {
   schoolName: string;
 
   @Column({ type: 'text', nullable: true })
-  token: string;
+  token: string | null;
 
   @OneToMany(() => Student, (student: Student) => student.teacher)
   students: Student[];

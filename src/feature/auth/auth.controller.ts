@@ -1,8 +1,13 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
-import { DataResponse } from 'src/core/http/http-response';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { DataResponse, MessageResponse } from 'src/core/http/http-response';
 import { AuthService } from './auth.service';
 import { TeacherSignInDTO } from './dtos/teacher-sign-in.dto';
 import { ITokenResponse } from './interfaces/token-response.interface';
+import { AuthGuard } from './guards/auth.guard';
+import { Auth } from './decorators/auth.decorator';
+import { AuthRole } from './enums/auth.enum';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { ICurrentUser } from './interfaces/current-user.interfaces';
 
 @Controller('auth')
 export class AuthController {
@@ -21,5 +26,16 @@ export class AuthController {
       'Login berhasil (guru)',
       response,
     );
+  }
+
+  @Post('teachers/logout')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.TEACHER)
+  public async logoutTeacher(
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<MessageResponse> {
+    await this.authService.logoutTeacher(currentUser.id);
+    return new MessageResponse(200, 'Logout berhasil (guru)');
   }
 }

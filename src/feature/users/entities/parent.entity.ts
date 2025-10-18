@@ -26,7 +26,7 @@ export class Parent {
   password: string;
 
   @Column({ type: 'text', nullable: true })
-  token: string;
+  token: string | null;
 
   @OneToMany(() => Student, (student: Student) => student.parent)
   students: Student[];

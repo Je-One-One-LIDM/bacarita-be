@@ -174,7 +174,7 @@ describe('Teacher Auth (e2e)', () => {
       .expect(403);
   });
 
-  it('POST /auth/teachers/sign-out | must sign out successfully', async () => {
+  it('POST /auth/teachers/logout | must sign out successfully', async () => {
     // First sign in
     const signInResponse = await requestTestAgent
       .post('/auth/teachers/login')
@@ -188,7 +188,7 @@ describe('Teacher Auth (e2e)', () => {
 
     // Then sign out
     await requestTestAgent
-      .post('/auth/teachers/sign-out')
+      .post('/auth/teachers/logout')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
@@ -200,14 +200,14 @@ describe('Teacher Auth (e2e)', () => {
     expect(teacherInDb!.token).toBeNull();
   });
 
-  it('POST /auth/teachers/sign-out | must reject if token is invalid', async () => {
+  it('POST /auth/teachers/logout | must reject if token is invalid', async () => {
     await requestTestAgent
-      .post('/auth/teachers/sign-out')
+      .post('/auth/teachers/logout')
       .set('Authorization', 'Bearer invalid-token')
       .expect(401);
   });
 
-  it('POST /auth/teachers/sign-out | must reject if token is missing', async () => {
-    await requestTestAgent.post('/auth/teachers/sign-out').expect(401);
+  it('POST /auth/teachers/logout | must reject if token is missing', async () => {
+    await requestTestAgent.post('/auth/teachers/logout').expect(401);
   });
 });

@@ -60,6 +60,15 @@ export class AuthService {
     return tokenResponse;
   }
 
+  public async logoutTeacher(teacherId: string): Promise<void> {
+    const teacher: Teacher | null =
+      await this.teacherService.findById(teacherId);
+    if (!teacher) throw new UnauthorizedException();
+
+    teacher.token = null;
+    await this.teacherService.save(teacher);
+  }
+
   public generateJwtToken(user: ICurrentUser): string {
     return this.jwtService.sign(user);
   }

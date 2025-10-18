@@ -25,7 +25,7 @@ export class Student {
   password: string;
 
   @Column({ type: 'text', nullable: true })
-  token: string;
+  token: string | null;
 
   @ManyToOne(() => Teacher, (teacher: Teacher) => teacher.students)
   @JoinColumn({ name: 'teacher_id' })
