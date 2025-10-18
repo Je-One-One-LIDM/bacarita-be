@@ -28,7 +28,7 @@ export class Teacher {
   @Column({ type: 'varchar', length: 255 })
   schoolName: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   token: string;
 
   @OneToMany(() => Student, (student: Student) => student.teacher)

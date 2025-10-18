@@ -7,7 +7,7 @@ export function createPinoLoggerOptions(config: ConfigService): Params {
   const env = config.get<string>('app.environment');
   let logLevel: string = env === 'production' ? 'info' : 'debug';
   if (env === 'test') {
-    logLevel = 'silent';
+    logLevel = 'error';
   }
 
   const appName = config.get<string>('app.name');

@@ -21,19 +21,18 @@ describe('Teachers (e2e)', () => {
     app = await createTestingApp();
     requestTestAgent = request(app.getHttpServer());
     dataSource = app.get<DataSource>(DataSource);
-  });
+  }, 15000);
 
   beforeEach(async () => {
-    // none
+    await clearDatabase(app);
   });
 
   afterAll(async () => {
-    await dropDatabase();
     await app.close();
   });
 
   afterEach(async () => {
-    await clearDatabase(app);
+    // none
   });
 
   it('POST /teachers | must register if request body is valid', async () => {

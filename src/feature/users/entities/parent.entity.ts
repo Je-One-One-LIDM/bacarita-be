@@ -25,7 +25,7 @@ export class Parent {
   @Column({ type: 'varchar', length: 255 })
   password: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   token: string;
 
   @OneToMany(() => Student, (student: Student) => student.parent)

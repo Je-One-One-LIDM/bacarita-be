@@ -64,4 +64,20 @@ export class TeacherService {
       updatedAt: savedTeacher.updatedAt,
     } as Teacher;
   }
+
+  public async findByEmail(email: string): Promise<Teacher | null> {
+    return this.teacherRepository.findOneBy({ email });
+  }
+
+  public async findByUsername(username: string): Promise<Teacher | null> {
+    return this.teacherRepository.findOneBy({ username });
+  }
+
+  public async findById(id: string): Promise<Teacher | null> {
+    return this.teacherRepository.findOneBy({ id });
+  }
+
+  public async save(teacher: Teacher): Promise<Teacher> {
+    return this.teacherRepository.save(teacher);
+  }
 }

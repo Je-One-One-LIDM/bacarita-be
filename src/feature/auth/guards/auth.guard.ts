@@ -1,14 +1,13 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
-import { Teacher } from 'src/feature/users/entities/teacher.entity';
-import { Repository } from 'typeorm';
+import { AuthService } from '../auth.service';
 import {
   AUTH_REQUEST_USER_KEY,
   AuthDecorator,
@@ -20,12 +19,11 @@ import { ICurrentUser } from '../interfaces/current-user.interfaces';
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    @InjectRepository(Teacher)
-    private readonly teacherRepository: Repository<Teacher>,
+    private readonly authService: AuthService,
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const roles: string[] = this.reflector.getAllAndOverride<string[]>(
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles: string[] = this.reflector.getAllAndOverride<string[]>(
       AuthDecorator.ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
@@ -37,31 +35,29 @@ export class AuthGuard implements CanActivate {
     const token: string = authHeader.split(' ')[1];
     if (!token) throw new UnauthorizedException();
 
-    switch (roles) {
-      case undefined:
-        return true;
-      case [AuthRole.ANY]:
-        return true;
-      case [AuthRole.TEACHER]: {
-        const teacher: Teacher | null = await this.teacherRepository.findOneBy({
-          token: token,
-        });
-
-        if (!teacher) throw new UnauthorizedException();
-
-        const currentUser: ICurrentUser = {
-          id: teacher.id,
-          email: teacher.email,
-          username: teacher.username,
-          role: AuthRole.TEACHER,
-        };
-        request[AUTH_REQUEST_USER_KEY] = currentUser;
-        return true;
-      }
-      default:
-        return true;
+    let user: ICurrentUser | null;
+    try {
+      user = this.authService.verifyJwtToken(token);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
-    return true;
+    if (user) {
+      // Attach user to request
+      request[AUTH_REQUEST_USER_KEY] = user;
+
+      // No roles required → allow anyone
+      if (!requiredRoles || requiredRoles.length === 0) return true;
+
+      // Allow ANY
+      if (requiredRoles.includes(AuthRole.ANY)) return true;
+
+      // Check role from JWT payload
+      if (!requiredRoles.includes(user.role as AuthRole)) {
+        throw new ForbiddenException();
+      }
+    }
+
+    throw new ForbiddenException();
   }
 }
