@@ -5,15 +5,9 @@ import { DataSource } from 'typeorm';
 const appDataSource: DataSource = connectionSource;
 
 async function dropDatabase(): Promise<void> {
-  try {
-    await appDataSource.initialize();
-    await appDataSource.dropDatabase();
-    await appDataSource.destroy();
-    console.log('Database dropped successfully');
-  } catch (error) {
-    console.error('Failed to drop database:', error);
-    throw error;
-  }
+  await appDataSource.initialize();
+  await appDataSource.dropDatabase();
+  await appDataSource.destroy();
 }
 
 async function clearDatabase(app: INestApplication): Promise<void> {

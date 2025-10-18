@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication } from '@nestjs/common';
+import { Teacher } from 'src/feature/users/entities/teacher.entity';
 import * as request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 import { App } from 'supertest/types';
-import createTestingApp from '../../utils/create-testing-app.utils';
-import {
-  clearDatabase,
-  dropDatabase,
-} from '../../utils/testing-database.utils';
 import { DataSource } from 'typeorm';
-import { Teacher } from 'src/feature/users/entities/teacher.entity';
+import createTestingApp from '../../utils/create-testing-app.utils';
+import { clearDatabase } from '../../utils/testing-database.utils';
 
 describe('Teachers (e2e)', () => {
   let app: INestApplication<App>;
