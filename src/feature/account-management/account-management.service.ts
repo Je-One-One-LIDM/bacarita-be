@@ -50,9 +50,6 @@ export class AccountManagementService {
     if (!parent) {
       const parentUsername: string = parentEmail.split('@')[0];
       const parentPassowrd: string = this.tokenGeneratorService.numericCode(6);
-      console.log(
-        `Generated password for parent ${parentEmail}: ${parentPassowrd}`,
-      );
       const hashedPassword = await bcrypt.hash(parentPassowrd, 10);
       parent = this.parentRepository.create({
         id: this.tokenGeneratorService.randomUUIDV7(),
@@ -66,9 +63,6 @@ export class AccountManagementService {
 
     const studentPassword: string = this.tokenGeneratorService.numericCode(6);
     const hashedStudentPassword = await bcrypt.hash(studentPassword, 10);
-    console.log(
-      `Generated password for student ${studentUsername}: ${studentPassword}`,
-    );
     const student: Student = this.studentRepository.create({
       id: this.tokenGeneratorService.randomUUIDV7(),
       username: studentUsername,
