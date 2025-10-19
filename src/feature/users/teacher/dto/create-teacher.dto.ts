@@ -1,8 +1,10 @@
+import { Transform } from 'class-transformer';
 import {
   IsAlphanumeric,
   IsEmail,
   IsNotEmpty,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -13,8 +15,12 @@ export class CreateTeacherDTO {
   @MaxLength(255, { message: 'Email maksimal 255 karakter' })
   email: string;
 
-  @IsNotEmpty({ message: 'Username tidak boleh kosong' })
   @IsString({ message: 'Username harus berupa string' })
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @Matches(/^\S+$/, { message: 'Username tidak boleh ada spasi' })
+  @IsNotEmpty({ message: 'Username tidak boleh kosong' })
   @IsAlphanumeric(undefined, {
     message: 'Username hanya boleh berisi huruf dan angka',
   })

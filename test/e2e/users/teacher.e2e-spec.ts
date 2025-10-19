@@ -162,6 +162,20 @@ describe('Teachers (e2e)', () => {
       .expect(400);
   });
 
+  it('POST /teachers | must reject if username have a space ( )', async () => {
+    await requestTestAgent
+      .post('/teachers')
+      .send({
+        email: 'teacher1@gmail.com',
+        username: 'teacher 1 spaces',
+        password: 'teacher1password',
+        confirmPassword: 'teacher1password_mismatch',
+        fullName: 'Teacher One',
+        schoolName: 'School Name 1',
+      })
+      .expect(400);
+  });
+
   it('POST /teachers | must reject if confirmPassword is not same as password (test case-sensitivy too)', async () => {
     await requestTestAgent
       .post('/teachers')
