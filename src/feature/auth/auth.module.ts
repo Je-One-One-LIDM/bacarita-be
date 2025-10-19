@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { TeacherModule } from '../users/teacher/teacher.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TeacherModule } from '../users/teacher/teacher.module';
+import { AuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [
@@ -18,9 +19,10 @@ import { TeacherModule } from '../users/teacher/teacher.module';
       }),
     }),
 
-    TeacherModule,
+    forwardRef(() => TeacherModule),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, AuthGuard],
+  exports: [AuthService, AuthGuard],
 })
 export class AuthModule {}

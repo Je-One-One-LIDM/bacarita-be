@@ -1,4 +1,9 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Express } from 'express';
 import { Logger } from 'nestjs-pino';
 import { AllExceptionsFilter } from './core/http/filters/http-exception.filter';
@@ -23,10 +28,12 @@ export function initializeApp(app: INestApplication): void {
       whitelist: true,
       forbidNonWhitelisted: true,
       transformOptions: {
-        enableImplicitConversion: true,
+        enableImplicitConversion: false,
       },
     }),
   );
+
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   app.useGlobalFilters(new AllExceptionsFilter(app.get<Logger>(Logger)));
 

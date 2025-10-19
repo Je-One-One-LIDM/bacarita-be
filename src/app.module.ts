@@ -9,6 +9,7 @@ import { createPinoLoggerOptions } from './core/logger/pino-logger.factory';
 import { UsersModule } from './feature/users/users.module';
 import { TokenGeneratorModule } from './common/token-generator/token-generator.module';
 import { AuthModule } from './feature/auth/auth.module';
+import { AccountManagementModule } from './feature/account-management/account-management.module';
 
 const env: string = process.env.NODE_ENV || 'development';
 
@@ -36,6 +37,8 @@ const env: string = process.env.NODE_ENV || 'development';
     TokenGeneratorModule,
 
     AuthModule,
+
+    AccountManagementModule,
   ],
 })
 export class AppModule {}

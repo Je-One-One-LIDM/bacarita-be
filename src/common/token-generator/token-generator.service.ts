@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
@@ -17,8 +17,6 @@ export class TokenGeneratorService {
   }
 
   numericCode(length = 6): string {
-    return Array.from({ length }, () => Math.floor(Math.random() * 10)).join(
-      '',
-    );
+    return Array.from({ length }, () => randomInt(0, 10)).join('');
   }
 }

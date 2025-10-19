@@ -69,7 +69,7 @@ describe('Teachers (e2e)', () => {
   });
 
   it('POST /teachers | must reject if email already registered', async () => {
-    const response1 = await requestTestAgent.post('/teachers').send({
+    const response = await requestTestAgent.post('/teachers').send({
       email: 'teacher1@gmail.com',
       username: 'teacher1',
       password: 'teacher1password',
@@ -77,7 +77,7 @@ describe('Teachers (e2e)', () => {
       fullName: 'Teacher One',
       schoolName: 'School Name 1',
     });
-    const body = response1.body.data;
+    const body = response.body.data;
     expect(body).toHaveProperty('id');
     expect(body).toHaveProperty('email', 'teacher1@gmail.com');
     expect(body).toHaveProperty('username', 'teacher1');
@@ -116,7 +116,7 @@ describe('Teachers (e2e)', () => {
   });
 
   it('POST /teachers | must reject if username already registered (test case-sensitivy too)', async () => {
-    const response1 = await requestTestAgent.post('/teachers').send({
+    const response = await requestTestAgent.post('/teachers').send({
       email: 'teacher1@gmail.com',
       username: 'teacher1',
       password: 'teacher1password',
@@ -124,7 +124,7 @@ describe('Teachers (e2e)', () => {
       fullName: 'Teacher One',
       schoolName: 'School Name 1',
     });
-    const body = response1.body.data;
+    const body = response.body.data;
     expect(body).toHaveProperty('id');
     expect(body).toHaveProperty('email', 'teacher1@gmail.com');
     expect(body).toHaveProperty('username', 'teacher1');

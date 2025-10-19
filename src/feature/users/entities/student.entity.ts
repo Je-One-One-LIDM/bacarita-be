@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Parent } from './parent.entity';
 import { Teacher } from './teacher.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('students')
 export class Student {
@@ -22,9 +23,11 @@ export class Student {
   fullName: string;
 
   @Column({ type: 'varchar', length: 255 })
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({ type: 'text', nullable: true })
+  @Exclude({ toPlainOnly: true })
   token: string | null;
 
   @ManyToOne(() => Teacher, (teacher: Teacher) => teacher.students)

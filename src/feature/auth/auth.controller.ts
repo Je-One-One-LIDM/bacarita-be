@@ -8,6 +8,7 @@ import { Auth } from './decorators/auth.decorator';
 import { AuthRole } from './enums/auth.enum';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { ICurrentUser } from './interfaces/current-user.interfaces';
+import { instanceToPlain } from 'class-transformer';
 
 @Controller('auth')
 export class AuthController {
@@ -24,7 +25,7 @@ export class AuthController {
     return new DataResponse<ITokenResponse>(
       200,
       'Login berhasil (guru)',
-      response,
+      instanceToPlain(response) as ITokenResponse,
     );
   }
 

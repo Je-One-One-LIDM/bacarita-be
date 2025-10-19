@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Student } from './student.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('parents')
 export class Parent {
@@ -23,9 +24,11 @@ export class Parent {
   fullName: string;
 
   @Column({ type: 'varchar', length: 255 })
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({ type: 'text', nullable: true })
+  @Exclude({ toPlainOnly: true })
   token: string | null;
 
   @OneToMany(() => Student, (student: Student) => student.parent)

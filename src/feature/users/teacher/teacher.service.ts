@@ -22,12 +22,13 @@ export class TeacherService {
       );
     }
 
-    const existingTeacher = await this.teacherRepository.findOne({
-      where: [
-        { email: createTeacherDto.email },
-        { username: createTeacherDto.username },
-      ],
-    });
+    const existingTeacher: Teacher | null =
+      await this.teacherRepository.findOne({
+        where: [
+          { email: createTeacherDto.email },
+          { username: createTeacherDto.username },
+        ],
+      });
 
     if (existingTeacher) {
       existingTeacher.email = existingTeacher.email.toLowerCase();
@@ -36,10 +37,14 @@ export class TeacherService {
       createTeacherDto.username = createTeacherDto.username.toLowerCase();
 
       if (existingTeacher.email === createTeacherDto.email) {
-        throw new BadRequestException('Email sudah terdaftar');
+        throw new BadRequestException(
+          `Email guru ${createTeacherDto.email} sudah terdaftar`,
+        );
       }
       if (existingTeacher.username === createTeacherDto.username) {
-        throw new BadRequestException('Username sudah terdaftar');
+        throw new BadRequestException(
+          `Username guru ${createTeacherDto.email} sudah terdaftar`,
+        );
       }
     }
 
@@ -54,15 +59,7 @@ export class TeacherService {
     });
     const savedTeacher = await this.teacherRepository.save(teacher);
 
-    return {
-      id: savedTeacher.id,
-      email: savedTeacher.email,
-      username: savedTeacher.username,
-      fullName: savedTeacher.fullName,
-      schoolName: savedTeacher.schoolName,
-      createdAt: savedTeacher.createdAt,
-      updatedAt: savedTeacher.updatedAt,
-    } as Teacher;
+    return savedTeacher;
   }
 
   public async findByEmail(email: string): Promise<Teacher | null> {

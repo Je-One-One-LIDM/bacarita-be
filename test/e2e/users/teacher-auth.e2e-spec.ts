@@ -51,6 +51,7 @@ describe('Teacher Auth (e2e)', () => {
       .expect(200);
 
     const body = response.body.data;
+
     expect(body).not.toHaveProperty('id');
     expect(body).not.toHaveProperty('email');
     expect(body).not.toHaveProperty('username');

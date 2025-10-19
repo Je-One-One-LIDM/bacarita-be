@@ -1,0 +1,380 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { INestApplication } from '@nestjs/common';
+import { Student } from 'src/feature/users/entities/student.entity';
+import * as request from 'supertest';
+import TestAgent from 'supertest/lib/agent';
+import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
+import createTestingApp from '../../utils/create-testing-app.utils';
+import { clearDatabase } from '../../utils/testing-database.utils';
+import { Parent } from 'src/feature/users/entities/parent.entity';
+import { Teacher } from 'src/feature/users/entities/teacher.entity';
+
+describe('Teachers (e2e)', () => {
+  let app: INestApplication<App>;
+  let requestTestAgent: TestAgent;
+  let dataSource: DataSource;
+
+  beforeAll(async () => {
+    app = await createTestingApp();
+    requestTestAgent = request(app.getHttpServer());
+    dataSource = app.get<DataSource>(DataSource);
+  }, 15000);
+
+  beforeEach(async () => {
+    await clearDatabase(app);
+    // Create a test teacher for login tests
+    await requestTestAgent.post('/teachers').send({
+      email: 'teacher1@gmail.com',
+      username: 'teacher1',
+      password: 'teacher1password',
+      confirmPassword: 'teacher1password',
+      fullName: 'Teacher One',
+      schoolName: 'School Name 1',
+    });
+
+    // Create a test teacher 2 for login tests
+    await requestTestAgent.post('/teachers').send({
+      email: 'teacher2@gmail.com',
+      username: 'teacher2',
+      password: 'teacher2password',
+      confirmPassword: 'teacher2password',
+      fullName: 'Teacher Two',
+      schoolName: 'School Name 2',
+    });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  afterEach(async () => {
+    // none
+  });
+
+  it('POST /teachers/students | must register a student and it parent if request is valid', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    const response = await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body = response.body.data;
+    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty('username', 'student1');
+    expect(body).toHaveProperty('fullName', 'Student One');
+    expect(body).not.toHaveProperty('password');
+    expect(body).not.toHaveProperty('token');
+    expect(body).toHaveProperty('createdAt');
+    expect(body).toHaveProperty('updatedAt');
+    expect(body).toHaveProperty('teacher');
+    expect(body.teacher).toHaveProperty('id');
+    expect(body.teacher).toHaveProperty('email', 'teacher1@gmail.com');
+    expect(body.teacher).toHaveProperty('username', 'teacher1');
+    expect(body.teacher).toHaveProperty('fullName', 'Teacher One');
+    expect(body.teacher).not.toHaveProperty('password');
+    expect(body.teacher).not.toHaveProperty('token');
+    expect(body.teacher).toHaveProperty('schoolName', 'School Name 1');
+    expect(body.teacher).toHaveProperty('createdAt');
+    expect(body.teacher).toHaveProperty('updatedAt');
+    expect(body).toHaveProperty('parent');
+    expect(body.parent).toHaveProperty('id');
+    expect(body.parent).toHaveProperty('username', 'parent1');
+    expect(body.parent).toHaveProperty('email', 'parent1@gmail.com');
+    expect(body.parent).toHaveProperty('fullName', 'Parent One');
+    expect(body.parent).not.toHaveProperty('password');
+    expect(body.parent).not.toHaveProperty('token');
+    expect(body.parent).toHaveProperty('createdAt');
+    expect(body.parent).toHaveProperty('updatedAt');
+
+    const studentInDb = await dataSource.getRepository(Student).findOne({
+      where: { id: body.id },
+      relations: ['parent', 'teacher'],
+    });
+    expect(studentInDb).toBeDefined();
+    expect(studentInDb).toHaveProperty('username', 'student1');
+    expect(studentInDb).toHaveProperty('fullName', 'Student One');
+    const parentInDb: Parent | null = await dataSource
+      .getRepository(Parent)
+      .findOne({
+        where: { id: studentInDb!.parent.id },
+        relations: ['students'],
+      });
+    expect(parentInDb).toBeDefined();
+    expect(parentInDb).toHaveProperty('username', 'parent1');
+    expect(parentInDb).toHaveProperty('email', 'parent1@gmail.com');
+    expect(parentInDb).toHaveProperty('fullName', 'Parent One');
+    expect(parentInDb?.students).toHaveLength(1);
+    expect(parentInDb?.students[0]).toHaveProperty('id', studentInDb!.id);
+    const teacherInDb: Teacher | null = await dataSource
+      .getRepository(Teacher)
+      .findOne({
+        where: { id: body.teacher.id },
+        relations: ['students'],
+      });
+    expect(teacherInDb).toBeDefined();
+    expect(teacherInDb?.students).toHaveLength(1);
+    expect(teacherInDb?.students[0]).toHaveProperty('id', studentInDb!.id);
+  });
+
+  it('POST /teachers/students | must register a second student with same parent as the first student if request is valid', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // first register student 1
+    const response1 = await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    const body1 = response1.body.data;
+
+    // try to register second student  with same parent
+    const response2 = await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student2',
+        studentFullName: 'Student Two',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body2 = response2.body.data;
+    expect(body2).toHaveProperty('id');
+    expect(body2).toHaveProperty('username', 'student2');
+    expect(body2).toHaveProperty('fullName', 'Student Two');
+    expect(body2).not.toHaveProperty('password');
+    expect(body2).not.toHaveProperty('token');
+    expect(body2).toHaveProperty('createdAt');
+    expect(body2).toHaveProperty('updatedAt');
+    expect(body2).toHaveProperty('teacher');
+    expect(body2.teacher).toHaveProperty('id');
+    expect(body2.teacher).toHaveProperty('email', 'teacher1@gmail.com');
+    expect(body2.teacher).toHaveProperty('username', 'teacher1');
+    expect(body2.teacher).toHaveProperty('fullName', 'Teacher One');
+    expect(body2.teacher).not.toHaveProperty('password');
+    expect(body2.teacher).not.toHaveProperty('token');
+    expect(body2.teacher).toHaveProperty('schoolName', 'School Name 1');
+    expect(body2.teacher).toHaveProperty('createdAt');
+    expect(body2.teacher).toHaveProperty('updatedAt');
+    expect(body2).toHaveProperty('parent');
+    expect(body2.parent).toHaveProperty('id');
+    expect(body2.parent).toHaveProperty('username', 'parent1');
+    expect(body2.parent).toHaveProperty('email', 'parent1@gmail.com');
+    expect(body2.parent).toHaveProperty('fullName', 'Parent One');
+    expect(body2.parent).not.toHaveProperty('password');
+    expect(body2.parent).not.toHaveProperty('token');
+    expect(body2.parent).toHaveProperty('createdAt');
+    expect(body2.parent).toHaveProperty('updatedAt');
+
+    const studentInDb1 = await dataSource.getRepository(Student).findOne({
+      where: { id: body1.id },
+      relations: ['parent', 'teacher'],
+    });
+    const studentInDb2 = await dataSource.getRepository(Student).findOne({
+      where: { id: body2.id },
+      relations: ['parent', 'teacher'],
+    });
+    expect(studentInDb2).toBeDefined();
+    expect(studentInDb2).toHaveProperty('username', 'student2');
+    expect(studentInDb2).toHaveProperty('fullName', 'Student Two');
+    const parentInDb: Parent | null = await dataSource
+      .getRepository(Parent)
+      .findOne({
+        where: { id: studentInDb2!.parent.id },
+        relations: ['students'],
+      });
+    expect(parentInDb).toBeDefined();
+    expect(parentInDb).toHaveProperty('username', 'parent1');
+    expect(parentInDb).toHaveProperty('email', 'parent1@gmail.com');
+    expect(parentInDb).toHaveProperty('fullName', 'Parent One');
+    expect(parentInDb?.students).toHaveLength(2);
+    expect(parentInDb?.students[0]).toHaveProperty('id', studentInDb1!.id);
+    expect(parentInDb?.students[1]).toHaveProperty('id', studentInDb2!.id);
+    const teacherInDb: Teacher | null = await dataSource
+      .getRepository(Teacher)
+      .findOne({
+        where: { id: body2.teacher.id },
+        relations: ['students'],
+      });
+    expect(teacherInDb).toBeDefined();
+    expect(teacherInDb?.students).toHaveLength(2);
+    expect(teacherInDb?.students[0]).toHaveProperty('id', studentInDb1!.id);
+    expect(teacherInDb?.students[1]).toHaveProperty('id', studentInDb2!.id);
+  });
+
+  it('POST /teachers/students | must reject if student already exist', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // first register student 1
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // try to register student 1 again with same username
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student Two',
+        parentEmail: 'parent2@gmail.com',
+        parentFullName: 'Parent Two',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('POST /teachers/students | must reject if other teacher register a student with same username', async () => {
+    const signInResponse1 = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token1 = signInResponse1.body.data.token;
+    const signInResponse2 = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher2@gmail.com',
+        password: 'teacher2password',
+      })
+      .expect(200);
+    const token2 = signInResponse2.body.data.token;
+
+    // first register student for teacher 1
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token1}`)
+      .expect(201);
+
+    // try to register student 1 again with same username by teacher 2
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student Two',
+        parentEmail: 'parent2@gmail.com',
+        parentFullName: 'Parent Two',
+      })
+      .set('Authorization', `Bearer ${token2}`)
+      .expect(400);
+  });
+
+  it('POST /teachers/students | must reject if student username have a spaces ( )', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student 1 2 spaces',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('POST /teachers/students | must reject if request body is invalid', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student 1 2 spaces',
+        studentFullName: 'Student One VERYLONGNAMEEXCEEDSLIMITNAMEEXCEEDSLIMIT',
+        parentEmail: 'parent1 gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('POST /teachers/students | must reject if un-authenticated (no token)', async () => {
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .expect(401);
+  });
+
+  it('POST /teachers/students | must reject if token is invalid', async () => {
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(401);
+  });
+});
