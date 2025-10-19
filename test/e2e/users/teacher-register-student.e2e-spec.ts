@@ -53,7 +53,7 @@ describe('Teachers (e2e)', () => {
     // none
   });
 
-  it('POST /teachers/students | must register a student and it parent if request is valid', async () => {
+  it('POST /teachers/students | must register a student and it parent if request is valid <with excluded sensitive data>', async () => {
     const signInResponse = await requestTestAgent
       .post('/auth/teachers/login')
       .send({
@@ -306,6 +306,48 @@ describe('Teachers (e2e)', () => {
         parentFullName: 'Parent Two',
       })
       .set('Authorization', `Bearer ${token2}`)
+      .expect(400);
+  });
+
+  it('POST /teachers/students | must handle parent email with special characters for username generation', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({ email: 'teacher1@gmail.com', password: 'teacher1password' })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    const response = await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent.test+tag@gmail.com', // Special chars in local part
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body = response.body.data;
+    expect(body.parent).toHaveProperty('username', 'parent.test+tag');
+    expect(body.parent).toHaveProperty('email', 'parent.test+tag@gmail.com');
+  });
+
+  it('POST /teachers/students | must reject if parent email generates invalid username', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({ email: 'teacher1@gmail.com', password: 'teacher1password' })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent with spaces@gmail.com', // Invalid for username
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
       .expect(400);
   });
 
