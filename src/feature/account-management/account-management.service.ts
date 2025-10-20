@@ -1,17 +1,27 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import { PinoLogger } from 'nestjs-pino';
+import { ITransactionalService } from 'src/common/base-transaction/transactional.interface.service';
+import { MailService } from 'src/common/mail/mail.service';
+import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Parent } from '../users/entities/parent.entity';
 import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
-import * as bcrypt from 'bcrypt';
-import { ITransactionalService } from 'src/common/base-transaction/transactional.interface.service';
 
 @Injectable()
 export class AccountManagementService extends ITransactionalService {
   constructor(
     dataSource: DataSource,
+
+    private readonly logger: PinoLogger,
+
+    private readonly mailService: MailService,
 
     @InjectRepository(Parent)
     private readonly parentRepository: Repository<Parent>,
@@ -25,6 +35,7 @@ export class AccountManagementService extends ITransactionalService {
     private readonly tokenGeneratorService: TokenGeneratorService,
   ) {
     super(dataSource);
+    this.logger.setContext(AccountManagementService.name);
   }
 
   public async createStudentWithParentAccount(
@@ -39,13 +50,15 @@ export class AccountManagementService extends ITransactionalService {
       const parentRepo: Repository<Parent> = manager.getRepository(Parent);
       const teacherRepo: Repository<Teacher> = manager.getRepository(Teacher);
 
+      let isParentAlreadyExists: boolean = true;
+      let parentPassword: string;
+
       const existingStudent: Student | null = await studentRepo.findOne({
         where: {
           username: studentUsername,
         },
         relations: ['teacher', 'parent'],
       });
-
       if (existingStudent) {
         throw new BadRequestException(
           `Student dengan username ${studentUsername} sudah pernah terdaftar`,
@@ -69,10 +82,11 @@ export class AccountManagementService extends ITransactionalService {
       });
 
       if (!parent) {
+        isParentAlreadyExists = false;
+
         const parentUsername: string = parentEmail.split('@')[0];
-        const parentPassowrd: string =
-          this.tokenGeneratorService.numericCode(6);
-        const hashedPassword: string = await bcrypt.hash(parentPassowrd, 10);
+        parentPassword = this.tokenGeneratorService.numericCode(6);
+        const hashedPassword: string = await bcrypt.hash(parentPassword, 10);
         parent = parentRepo.create({
           id: this.tokenGeneratorService.randomUUIDV7(),
           username: parentUsername,
@@ -80,6 +94,7 @@ export class AccountManagementService extends ITransactionalService {
           password: hashedPassword,
           fullName: parentFullName,
         });
+
         await parentRepo.save(parent);
       }
 
@@ -99,6 +114,42 @@ export class AccountManagementService extends ITransactionalService {
       student.teacher = teacher;
 
       const savedStudent: Student = await studentRepo.save(student);
+
+      if (!isParentAlreadyExists) {
+        try {
+          // send welcome email that contains both parent and student account info
+          await this.mailService.sendFirstTimeWelcomeParentWithStudentEmail(
+            parent.email,
+            parent.username,
+            parentPassword!, // parentPassword is guaranteed to exist if parent is newly created
+            student.username,
+            studentPassword,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to send welcome email to parent ${parent.email}: ${error}`,
+          );
+          throw new InternalServerErrorException(
+            'Gagal mengirim email sambutan kepada orang tua',
+          );
+        }
+      } else {
+        try {
+          // send email that contains only student account info
+          await this.mailService.sendStudentAccountInfoToParentEmail(
+            parent.email,
+            student.username,
+            studentPassword,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to send student account info email to parent ${parent.email}: ${error}`,
+          );
+          throw new InternalServerErrorException(
+            'Gagal mengirim email informasi akun siswa ke orang tua',
+          );
+        }
+      }
 
       return savedStudent;
     });

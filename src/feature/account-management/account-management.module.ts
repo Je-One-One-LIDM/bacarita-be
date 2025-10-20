@@ -6,10 +6,13 @@ import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
 import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';
 import { BaseTransactionModule } from 'src/common/base-transaction/base-transaction.module';
+import { MailModule } from 'src/common/mail/mail.module';
 
 @Module({
   imports: [
     BaseTransactionModule,
+
+    MailModule,
 
     TypeOrmModule.forFeature([Parent, Student, Teacher]),
 

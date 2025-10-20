@@ -11,6 +11,7 @@ import { TokenGeneratorModule } from './common/token-generator/token-generator.m
 import { AuthModule } from './feature/auth/auth.module';
 import { AccountManagementModule } from './feature/account-management/account-management.module';
 import { BaseTransactionModule } from './common/base-transaction/base-transaction.module';
+import { MailModule } from './common/mail/mail.module';
 
 const env: string = process.env.NODE_ENV || 'development';
 
@@ -42,6 +43,8 @@ const env: string = process.env.NODE_ENV || 'development';
     AccountManagementModule,
 
     BaseTransactionModule,
+
+    MailModule,
   ],
 })
 export class AppModule {}
