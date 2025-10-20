@@ -43,8 +43,8 @@ export class TeacherController {
         createStudentAndParentDto.studentUsername,
         createStudentAndParentDto.studentFullName,
         createStudentAndParentDto.parentEmail,
-        createStudentAndParentDto.parentFullName,
         currentTeacher.id,
+        createStudentAndParentDto.parentFullName,
       );
 
     return new DataResponse(201, 'Berhasil mendaftarkan siswa', newlyStudent);
