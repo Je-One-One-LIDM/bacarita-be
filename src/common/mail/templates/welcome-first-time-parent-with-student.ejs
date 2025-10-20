@@ -3,18 +3,29 @@
 
 <body>
   <h2>Selamat Datang di Bacarita, <%= parentUsername %>!</h2>
-  <p>Kami senang Anda bergabung!</p>
-  <p>Akun Anda telah berhasil dibuat dengan rincian berikut:</p>
+  <p>Akun Anak Anda telah ditambah telah berhasil dibuat dengan rincian berikut:</p>
   <ul>
-    <li><strong>Peran:</strong> Anak</li>
-    <li><strong>Nama Pengguna Anak:</strong>
+    <li><strong>Peran:</strong> Orang Tua</li>
+    <li><strong>Nama Pengguna:</strong>
+      <%= parentUsername %>
+    </li>
+    <li><strong>Email:</strong>
+      <%= parentEmail %>
+    </li>
+    <li><strong>Kata Sandi:</strong>
+      <%= parentPassword %>
+    </li>
+    <li><strong>Peran:</strong> Siswa</li>
+    <li><strong>Nama Pengguna Siswa:</strong>
       <%= studentUsername %>
     </li>
-    <li><strong>Kata Sandi Anak:</strong>
+    <li><strong>Kata Sandi Siswa:</strong>
       <%= studentPassword %>
     </li>
   </ul>
+  <p>Untuk memulai, silakan masuk ke akun Anda menggunakan kredensial yang diberikan.</p>
   <p>Jika Anda memiliki pertanyaan atau butuh bantuan, jangan ragu untuk menghubungi tim dukungan kami.</p>
+  <p>Selamat belajar!</p>
   <p>Salam hangat,<br>Tim Bacarita</p>
 </body>
 
