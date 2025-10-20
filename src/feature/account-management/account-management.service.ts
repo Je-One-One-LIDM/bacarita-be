@@ -50,7 +50,7 @@ export class AccountManagementService {
     if (!parent) {
       const parentUsername: string = parentEmail.split('@')[0];
       const parentPassowrd: string = this.tokenGeneratorService.numericCode(6);
-      const hashedPassword = await bcrypt.hash(parentPassowrd, 10);
+      const hashedPassword: string = await bcrypt.hash(parentPassowrd, 10);
       parent = this.parentRepository.create({
         id: this.tokenGeneratorService.randomUUIDV7(),
         username: parentUsername,
@@ -62,7 +62,10 @@ export class AccountManagementService {
     }
 
     const studentPassword: string = this.tokenGeneratorService.numericCode(6);
-    const hashedStudentPassword = await bcrypt.hash(studentPassword, 10);
+    const hashedStudentPassword: string = await bcrypt.hash(
+      studentPassword,
+      10,
+    );
     const student: Student = this.studentRepository.create({
       id: this.tokenGeneratorService.randomUUIDV7(),
       username: studentUsername,
@@ -71,9 +74,13 @@ export class AccountManagementService {
     });
     student.parent = parent!; // parent is guaranteed to exist here
 
-    const teacher = await this.teacherRepository.findOneBy({ id: teacherId });
+    const teacher: Teacher | null = await this.teacherRepository.findOneBy({
+      id: teacherId,
+    });
     if (!teacher) {
-      throw new BadRequestException(`Teacher with ID ${teacherId} not found`);
+      throw new BadRequestException(
+        `Teacher dengan ID ${teacherId} tidak ditemukan`,
+      );
     }
     student.teacher = teacher;
 
