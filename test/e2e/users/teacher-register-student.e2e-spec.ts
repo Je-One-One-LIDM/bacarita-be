@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication } from '@nestjs/common';
+import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
+import { AccountManagementService } from 'src/feature/account-management/account-management.service';
+import { Parent } from 'src/feature/users/entities/parent.entity';
 import { Student } from 'src/feature/users/entities/student.entity';
+import { Teacher } from 'src/feature/users/entities/teacher.entity';
 import * as request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 import { App } from 'supertest/types';
-import { DataSource, IntegerType } from 'typeorm';
+import { DataSource } from 'typeorm';
 import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
-import { Parent } from 'src/feature/users/entities/parent.entity';
-import { Teacher } from 'src/feature/users/entities/teacher.entity';
-import { AccountManagementService } from 'src/feature/account-management/account-management.service';
-import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
 
 describe('Teachers (e2e)', () => {
   let app: INestApplication<App>;
