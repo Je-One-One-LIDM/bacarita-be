@@ -55,7 +55,7 @@ describe('Teachers (e2e)', () => {
     // none
   });
 
-  it('AccountManagementService | [TRANSACTIONAL] must rollback if there are faulty database error', async () => {
+  it('AccountManagementService.createStudentWithParentAccount | [TRANSACTIONAL] must rollback if there are faulty database error', async () => {
     const tokenGeneratorService: TokenGeneratorService = app.get(
       TokenGeneratorService,
     );
@@ -100,9 +100,6 @@ describe('Teachers (e2e)', () => {
       .get(DataSource)
       .getRepository(Student)
       .findOne({ where: { username: 'rollbackUser' } });
-
-    console.log('student after rollback attempt:', student);
-    console.log('parent after rollback attempt:', parent);
 
     expect(student).toBeNull();
     expect(parent).toBeNull();
