@@ -12,6 +12,7 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
+import { MailService } from 'src/common/mail/mail.service';
 
 describe('Teachers (e2e)', () => {
   let app: INestApplication<App>;
@@ -25,6 +26,14 @@ describe('Teachers (e2e)', () => {
   }, 15000);
 
   beforeEach(async () => {
+    const mailService = app.get(MailService);
+    jest
+      .spyOn(mailService, 'sendFirstTimeWelcomeParentWithStudentEmail')
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(mailService, 'sendStudentAccountInfoToParentEmail')
+      .mockResolvedValue(undefined);
+
     await clearDatabase(app);
     // Create a test teacher for login tests
     await requestTestAgent.post('/teachers').send({
@@ -56,9 +65,6 @@ describe('Teachers (e2e)', () => {
   });
 
   it('AccountManagementService.createStudentWithParentAccount | [TRANSACTIONAL] must rollback if there are faulty database error', async () => {
-    const tokenGeneratorService: TokenGeneratorService = app.get(
-      TokenGeneratorService,
-    );
     const accMngService: AccountManagementService = app.get(
       AccountManagementService,
     );
@@ -75,11 +81,6 @@ describe('Teachers (e2e)', () => {
         schoolName: 'School Name 3',
       });
     const teacherId = responseRegisterTeacher.body.data.id;
-
-    jest
-      .spyOn(tokenGeneratorService, 'randomUUIDV7')
-      .mockImplementationOnce(() => '019a00e5-75dc-7f22-bcc5-03ce62291d71') // for parent id
-      .mockImplementationOnce(() => null as never); // invalid data type to simulate DB insertion error (for student id)
 
     await expect(
       accMngService.createStudentWithParentAccount(
