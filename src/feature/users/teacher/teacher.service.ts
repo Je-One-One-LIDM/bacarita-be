@@ -2,18 +2,23 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Teacher } from '../entities/teacher.entity';
 import { CreateTeacherDTO } from './dto/create-teacher.dto';
+import { ITransactionalService } from 'src/common/base-transaction/transactional.interface.service';
 
 @Injectable()
-export class TeacherService {
+export class TeacherService extends ITransactionalService {
   constructor(
+    dataSource: DataSource,
+
     @InjectRepository(Teacher)
     private readonly teacherRepository: Repository<Teacher>,
 
     private readonly tokenGeneratorService: TokenGeneratorService,
-  ) {}
+  ) {
+    super(dataSource);
+  }
 
   public async create(createTeacherDto: CreateTeacherDTO): Promise<Teacher> {
     if (createTeacherDto.password !== createTeacherDto.confirmPassword) {

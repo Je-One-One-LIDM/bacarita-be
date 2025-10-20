@@ -1,15 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication } from '@nestjs/common';
+import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
+import { AccountManagementService } from 'src/feature/account-management/account-management.service';
+import { Parent } from 'src/feature/users/entities/parent.entity';
 import { Student } from 'src/feature/users/entities/student.entity';
+import { Teacher } from 'src/feature/users/entities/teacher.entity';
 import * as request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
-import { Parent } from 'src/feature/users/entities/parent.entity';
-import { Teacher } from 'src/feature/users/entities/teacher.entity';
 
 describe('Teachers (e2e)', () => {
   let app: INestApplication<App>;
@@ -51,6 +53,56 @@ describe('Teachers (e2e)', () => {
 
   afterEach(async () => {
     // none
+  });
+
+  it('AccountManagementService.createStudentWithParentAccount | [TRANSACTIONAL] must rollback if there are faulty database error', async () => {
+    const tokenGeneratorService: TokenGeneratorService = app.get(
+      TokenGeneratorService,
+    );
+    const accMngService: AccountManagementService = app.get(
+      AccountManagementService,
+    );
+
+    // Create a test teacher
+    const responseRegisterTeacher = await requestTestAgent
+      .post('/teachers')
+      .send({
+        email: 'teacher3@gmail.com',
+        username: 'teacher3',
+        password: 'teacher3password',
+        confirmPassword: 'teacher3password',
+        fullName: 'Teacher Three',
+        schoolName: 'School Name 3',
+      });
+    const teacherId = responseRegisterTeacher.body.data.id;
+
+    jest
+      .spyOn(tokenGeneratorService, 'randomUUIDV7')
+      .mockImplementationOnce(() => '019a00e5-75dc-7f22-bcc5-03ce62291d71') // for parent id
+      .mockImplementationOnce(() => null as never); // invalid data type to simulate DB insertion error (for student id)
+
+    await expect(
+      accMngService.createStudentWithParentAccount(
+        'rollbackUser',
+        'Rollback Test',
+        'rollbackParent@gmail.com',
+        'Parent Rollback',
+        teacherId as string,
+      ),
+    ).rejects.toThrow();
+
+    const parent: Parent | null = await app
+      .get(DataSource)
+      .getRepository(Parent)
+      .findOne({ where: { email: 'rollbackParent@gmail.com' } });
+
+    const student: Student | null = await app
+      .get(DataSource)
+      .getRepository(Student)
+      .findOne({ where: { username: 'rollbackUser' } });
+
+    expect(student).toBeNull();
+    expect(parent).toBeNull();
   });
 
   it('POST /teachers/students | must register a student and it parent if request is valid <with excluded sensitive data>', async () => {

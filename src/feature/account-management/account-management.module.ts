@@ -5,9 +5,12 @@ import { Parent } from '../users/entities/parent.entity';
 import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
 import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';
+import { BaseTransactionModule } from 'src/common/base-transaction/base-transaction.module';
 
 @Module({
   imports: [
+    BaseTransactionModule,
+
     TypeOrmModule.forFeature([Parent, Student, Teacher]),
 
     TokenGeneratorModule,
