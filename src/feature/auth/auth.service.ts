@@ -64,6 +64,8 @@ export class AuthService {
     const teacher: Teacher | null =
       await this.teacherService.findById(teacherId);
     if (!teacher) throw new UnauthorizedException();
+    if (!teacher.token)
+      throw new ForbiddenException('Forbidden, already logged out');
 
     teacher.token = null;
     await this.teacherService.save(teacher);

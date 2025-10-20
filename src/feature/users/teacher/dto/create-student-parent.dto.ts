@@ -2,13 +2,13 @@ import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
 } from 'class-validator';
 
 // create DTO for registering student along with parent account
-// TODO: parent fullname make to null to accomodate parent already exist case
 export class CreateStudentAndParentDTO {
   @IsNotEmpty({ message: 'Username siswa tidak boleh kosong' })
   @Transform(({ value }): string =>
@@ -30,8 +30,8 @@ export class CreateStudentAndParentDTO {
   @MaxLength(255, { message: 'Email orang tua maksimal 255 karakter' })
   parentEmail: string;
 
-  @IsNotEmpty({ message: 'Nama orang tua tidak boleh kosong' })
+  @IsOptional()
   @IsString({ message: 'Nama orang tua harus berupa string' })
   @MaxLength(255, { message: 'Nama orang tua maksimal 255 karakter' })
-  parentFullName: string;
+  parentFullName?: string;
 }

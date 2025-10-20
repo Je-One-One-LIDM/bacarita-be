@@ -42,8 +42,8 @@ export class AccountManagementService extends ITransactionalService {
     studentUsername: string,
     studentFullName: string,
     parentEmail: string,
-    parentFullName: string,
     teacherId: string,
+    parentFullName?: string,
   ): Promise<Student> {
     return this.withTransaction<Student>(async (manager: EntityManager) => {
       const studentRepo: Repository<Student> = manager.getRepository(Student);
