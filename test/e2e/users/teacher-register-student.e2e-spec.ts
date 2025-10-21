@@ -64,7 +64,7 @@ describe('Teachers (e2e)', () => {
     // none
   });
 
-  it('AccountManagementService.createStudentWithParentAccount | [TRANSACTIONAL] must rollback if there are faulty database error', async () => {
+  it('AccountManagementService.createStudentWithParentAccount | [TRANSACTIONAL] must rollback if there are faulty database errors', async () => {
     const tokenGeneratorServiceService: TokenGeneratorService = app.get(
       TokenGeneratorService,
     );
