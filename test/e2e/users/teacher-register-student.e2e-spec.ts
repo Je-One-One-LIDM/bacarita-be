@@ -65,6 +65,14 @@ describe('Teachers (e2e)', () => {
   });
 
   it('AccountManagementService.createStudentWithParentAccount | [TRANSACTIONAL] must rollback if there are faulty database error', async () => {
+    const tokenGeneratorServiceService: TokenGeneratorService = app.get(
+      TokenGeneratorService,
+    );
+    const randomUUIDV7Mock = jest.spyOn(
+      tokenGeneratorServiceService,
+      'randomUUIDV7',
+    );
+
     const accMngService: AccountManagementService = app.get(
       AccountManagementService,
     );
@@ -82,6 +90,9 @@ describe('Teachers (e2e)', () => {
       });
     const teacherId = responseRegisterTeacher.body.data.id;
 
+    randomUUIDV7Mock.mockImplementationOnce(() => 'valid-uuid-v7'); // for parent
+    randomUUIDV7Mock.mockImplementationOnce(() => null as never); // for student; this will cause a faulty error in DB due to null PK
+
     await expect(
       accMngService.createStudentWithParentAccount(
         'rollbackUser',
@@ -91,6 +102,8 @@ describe('Teachers (e2e)', () => {
         teacherId as string,
       ),
     ).rejects.toThrow();
+
+    randomUUIDV7Mock.mockRestore();
 
     const parent: Parent | null = await app
       .get(DataSource)
