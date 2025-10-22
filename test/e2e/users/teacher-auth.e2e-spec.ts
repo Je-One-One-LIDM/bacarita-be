@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication } from '@nestjs/common';
+import { Parent } from 'src/feature/users/entities/parent.entity';
+import { Student } from 'src/feature/users/entities/student.entity';
 import { Teacher } from 'src/feature/users/entities/teacher.entity';
 import * as request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
@@ -8,6 +10,7 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
+import * as bcrypt from 'bcrypt';
 
 describe('Teacher Auth (e2e)', () => {
   let app: INestApplication<App>;
@@ -161,7 +164,7 @@ describe('Teacher Auth (e2e)', () => {
         username: 'teacher@123',
         password: 'teacher1password',
       })
-      .expect(400);
+      .expect(401);
   });
 
   it('POST /auth/teachers/login | must reject if username and email are both there provided', async () => {
@@ -210,5 +213,57 @@ describe('Teacher Auth (e2e)', () => {
 
   it('POST /auth/teachers/logout | must reject if token is missing', async () => {
     await requestTestAgent.post('/auth/teachers/logout').expect(401);
+  });
+
+  it('POST /auth/teachers/logout | must reject if user is not a teacher', async () => {
+    // test other role token (student)
+    await dataSource.getRepository(Student).save({
+      id: '001',
+      username: 'student1',
+      password: await bcrypt.hash('student1password', 10),
+      fullName: 'Student One',
+    });
+
+    await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: 'student1password',
+      })
+      .expect(200)
+      .then(async (res) => {
+        const token = res.body.data.token;
+        // Attempt to logout as teacher
+        await requestTestAgent
+          .post('/auth/teachers/logout')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(403);
+      });
+
+    // test other role token (parent)
+    await dataSource.getRepository(Parent).save({
+      id: '001',
+      email: 'parent1@mail.com',
+      username: 'parent1',
+      password: await bcrypt.hash('parent1password', 10),
+      fullName: 'Parent One',
+    });
+
+    await requestTestAgent
+      .post('/auth/parents/login')
+      .send({
+        email: 'parent1@mail.com',
+        password: 'parent1password',
+      })
+      .expect(200)
+      .then(async (res) => {
+        const token = res.body.data.token;
+
+        // Attempt to logout as teacher
+        await requestTestAgent
+          .post('/auth/teachers/logout')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(403);
+      });
   });
 });

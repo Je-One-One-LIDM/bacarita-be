@@ -1,18 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';
 import { Parent } from './entities/parent.entity';
 import { Student } from './entities/student.entity';
 import { Teacher } from './entities/teacher.entity';
-import { TeacherModule } from './teacher/teacher.module';
-import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';
+import { ParentModule } from './parent/parent.module';
 import { StudentModule } from './student/student.module';
+import { TeacherModule } from './teacher/teacher.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Parent, Student, Teacher]),
+    ParentModule,
+    StudentModule,
     TeacherModule,
     TokenGeneratorModule,
-    StudentModule,
   ],
 })
 export class UsersModule {}

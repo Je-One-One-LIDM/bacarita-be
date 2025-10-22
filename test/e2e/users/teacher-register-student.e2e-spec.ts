@@ -14,7 +14,7 @@ import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
 import { MailService } from 'src/common/mail/mail.service';
 
-describe('Teachers (e2e)', () => {
+describe('Teacher Register a Student and its Parent (e2e)', () => {
   let app: INestApplication<App>;
   let requestTestAgent: TestAgent;
   let dataSource: DataSource;
