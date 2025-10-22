@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -26,6 +27,24 @@ export class AuthService {
     private readonly parentService: ParentService,
     private readonly studentService: StudentService,
   ) {}
+
+  public async getProfile(
+    userId: string,
+    role: AuthRole,
+  ): Promise<Student | Teacher | Parent | null> {
+    if (role === AuthRole.TEACHER) {
+      return this.teacherService.findById(userId);
+    }
+    if (role === AuthRole.STUDENT) {
+      return this.studentService.findById(userId);
+    }
+    if (role === AuthRole.PARENT) {
+      return this.parentService.findById(userId);
+    }
+
+    // if null will throw
+    throw new NotFoundException('User tidak ditemukan');
+  }
 
   public async loginTeacher(
     teacherSignInDto: TeacherSignInDTO,

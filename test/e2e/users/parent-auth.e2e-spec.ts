@@ -167,4 +167,29 @@ describe('Parent Auth (e2e)', () => {
   it('POST /auth/parents/logout | must reject if token is missing', async () => {
     await requestTestAgent.post('/auth/parents/logout').expect(401);
   });
+
+  it('GET /auth/me | must return parent profile', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/parents/login')
+      .send({
+        email: 'parent1@gmail.com',
+        password: '123456',
+      })
+      .expect(200);
+
+    const token = signInResponse.body.data.token;
+
+    const response = await requestTestAgent
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const body = response.body.data;
+    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty('email', 'parent1@gmail.com');
+    expect(body).toHaveProperty('username', 'parent1');
+    expect(body).toHaveProperty('fullName', 'Parent One');
+    expect(body).not.toHaveProperty('password');
+    expect(body).not.toHaveProperty('token');
+  });
 });

@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { instanceToPlain } from 'class-transformer';
 import { DataResponse, MessageResponse } from 'src/core/http/http-response';
 import { AuthService } from './auth.service';
@@ -11,10 +18,32 @@ import { AuthRole } from './enums/auth.enum';
 import { AuthGuard } from './guards/auth.guard';
 import { ICurrentUser } from './interfaces/current-user.interfaces';
 import { ITokenResponse } from './interfaces/token-response.interface';
+import { Student } from '../users/entities/student.entity';
+import { Parent } from '../users/entities/parent.entity';
+import { Teacher } from '../users/entities/teacher.entity';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.ANY)
+  public async me(
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<DataResponse<Student | Parent | Teacher>> {
+    const profile: Student | Parent | Teacher | null =
+      await this.authService.getProfile(
+        currentUser.id,
+        currentUser.role as AuthRole,
+      );
+
+    return new DataResponse<Student | Parent | Teacher>(
+      200,
+      `Berhasil mendapatkan data profile ${currentUser.role.toLowerCase()}`,
+      instanceToPlain(profile) as Student | Parent | Teacher,
+    );
+  }
 
   @Post('teachers/login')
   @HttpCode(200)

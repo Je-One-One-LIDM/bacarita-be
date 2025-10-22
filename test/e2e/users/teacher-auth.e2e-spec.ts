@@ -215,6 +215,32 @@ describe('Teacher Auth (e2e)', () => {
     await requestTestAgent.post('/auth/teachers/logout').expect(401);
   });
 
+  it('GET /auth/me | must return teacher profile', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+
+    const token = signInResponse.body.data.token;
+
+    const response = await requestTestAgent
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const body = response.body.data;
+    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty('email', 'teacher1@gmail.com');
+    expect(body).toHaveProperty('username', 'teacher1');
+    expect(body).toHaveProperty('fullName', 'Teacher One');
+    expect(body).toHaveProperty('schoolName', 'School Name 1');
+    expect(body).not.toHaveProperty('password');
+    expect(body).not.toHaveProperty('token');
+  });
+
   it('POST /auth/teachers/logout | must reject if user is not a teacher', async () => {
     // test other role token (student)
     await dataSource.getRepository(Student).save({
