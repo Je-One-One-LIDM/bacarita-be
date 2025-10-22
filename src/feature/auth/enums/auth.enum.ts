@@ -7,6 +7,7 @@ export enum AuthRole {
   ADMIN = 'admin',
   TEACHER = 'teacher',
   STUDENT = 'student',
+  PARENT = 'parent',
 }
 
 export const AUTH_REQUEST_USER_KEY = 'user';

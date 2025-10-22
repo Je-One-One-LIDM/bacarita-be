@@ -9,7 +9,7 @@ import { DataSource } from 'typeorm';
 import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
 
-describe('Teachers (e2e)', () => {
+describe('Teachers Register (e2e)', () => {
   let app: INestApplication<App>;
   let requestTestAgent: TestAgent;
   let dataSource: DataSource;
