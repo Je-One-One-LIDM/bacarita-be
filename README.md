@@ -5,36 +5,15 @@
 [circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
 [circleci-url]: https://circleci.com/gh/nestjs/nest
 
-  <p align="center">Nest TypeScript starter kit by AghnatHs</p>
-    <p align="center">
+<p align="center">
+  <strong>POWERED BY </strong>
+  <a href="https://github.com/AghnatHs/nest-core-kit" target="_blank">
+    Nest TypeScript Core Starter Kit by AghnatHs
+  </a>
+</p>
+<p align="center">
 
-### TODO
-
-- Dockerize
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript core kit (mainly for personal use), with pre-configure TypeORM, Logger (Pino), ExceptionFilter, and Interceptor.
-
-## Disclaimer
-
-This project is an independent starter kit built on top of the NestJS framework. It is not officially affiliated with, endorsed by, or maintained by the NestJS team.
-
-It is intended solely for my personal use to accelerate development by providing preconfigured modules such as logging, validation, and database integration.
-
-Use at your own discretion.
-
-## What already configured
-
-- TypeORM (migrations included by command "npm run migration:*")
-- Logger (Pino) (log to console and files (daily rotation))
-- ExceptionFilter (when response is error or HTTPException)
-- Interceptor (when response is success)
-
-- Centralized response using HTTPResponse class for consistency
-- .env.* (per development) 
-
-Fully Customizable
+# Bacarita Backend
 
 ## Project setup
 
@@ -57,6 +36,40 @@ $ cp .env.example .env.test
 $ mkdir logs
 
 $ npm run start:dev
+
+```
+
+## Migration (Development)
+
+Migration in development will use .env.development
+
+```bash
+# Apply all migration to database
+$ npm run migration:run
+
+# generate migration based on current entities (Linux / MacOs)
+$ npm run migration:generate --name=CreateUsersTable
+# generate migration based on current entities (Windows)
+$ npm run migration:generate:win --name=CreateUsersTable
+
+# create empty migration file (Linux / MacOs)
+$ npm run migration:create --name=CustomMigration
+# create empty migration file (Windows)
+$ npm run migration:create:win --name=CustomMigration
+
+# undo most recent migration
+$ npm run migration:revert
+```
+
+- Never edit existing migration, create a new one instead
+- On Windows, use the \*:win variants because environment variable syntax differs (%VAR% - $VAR).
+
+## Migration (Production)
+
+For running a newly migration in production, just run this command
+
+```bash
+$ npm run migration:run:production
 ```
 
 ## Compile and run the project
@@ -87,11 +100,3 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
-
-## Deployment
-
-TODO
-
-## License
-
-[MIT licensed](https://github.com/AghnatHs/nest-core-kit/blob/main/LICENSE).
