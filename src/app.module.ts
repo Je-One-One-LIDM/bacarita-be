@@ -2,10 +2,17 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
+import { BaseTransactionModule } from './common/base-transaction/base-transaction.module';
+import { MailModule } from './common/mail/mail.module';
+import { TokenGeneratorModule } from './common/token-generator/token-generator.module';
 import app from './config/app/app.config';
-import typeorm from './config/database/typeorm.config';
+import mail from './config/app/mail.config';
+import { dataSourceOptions } from './config/database/typeorm.config';
 import environmentValidation from './config/environment.validation';
 import { createPinoLoggerOptions } from './core/logger/pino-logger.factory';
+import { AccountManagementModule } from './feature/account-management/account-management.module';
+import { AuthModule } from './feature/auth/auth.module';
+import { UsersModule } from './feature/users/users.module';
 
 const env: string = process.env.NODE_ENV || 'development';
 
@@ -14,7 +21,7 @@ const env: string = process.env.NODE_ENV || 'development';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${env}`,
-      load: [typeorm, app],
+      load: [app, mail],
       validationSchema: environmentValidation,
     }),
 
@@ -23,10 +30,22 @@ const env: string = process.env.NODE_ENV || 'development';
       useFactory: (config: ConfigService) => createPinoLoggerOptions(config),
     }),
 
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: async (config: ConfigService) => config.get('typeorm')!,
+    TypeOrmModule.forRoot({
+      ...dataSourceOptions,
+      autoLoadEntities: true,
     }),
+
+    UsersModule,
+
+    TokenGeneratorModule,
+
+    AuthModule,
+
+    AccountManagementModule,
+
+    BaseTransactionModule,
+
+    MailModule,
   ],
 })
 export class AppModule {}

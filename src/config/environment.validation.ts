@@ -20,6 +20,16 @@ export default Joi.object({
   DB_PASSWORD: Joi.string().required(),
   DB_DATABASE: Joi.string().required(),
 
-  TYPEORM_SYNC: Joi.boolean().default(false),
+  JWT_SECRET: Joi.string().required(),
+  JWT_EXPIRES: Joi.string().required(),
+
+  MAIL_HOST: Joi.string().required(),
+  MAIL_PORT: Joi.number().port().default(587),
+  MAIL_SECURE: Joi.boolean().default(false),
+  MAIL_USER: Joi.string().required(),
+  MAIL_PASS: Joi.string().required(),
+  MAIL_FROM_NAME: Joi.string().default('YourApp'),
+  MAIL_FROM_EMAIL: Joi.string().email().required(),
+
   TYPEORM_LOGGING: Joi.boolean().default(false),
 });
