@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { DataResponse } from 'src/core/http/http-response';
 import { AccountManagementService } from 'src/feature/account-management/account-management.service';
 import { Auth } from 'src/feature/auth/decorators/auth.decorator';
@@ -28,6 +35,23 @@ export class TeacherController {
       await this.teacherService.create(createTeacherDto);
 
     return new DataResponse(201, 'Berhasil registrasi guru', newTeacher);
+  }
+
+  @Get('students/parents-email')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.TEACHER)
+  public async getAllStudentsParentsEmail(
+    @CurrentUser() _: ICurrentUser,
+  ): Promise<DataResponse<string[]>> {
+    const parentsEmail: string[] =
+      await this.accountManagementService.getAllStudentsParentsEmail();
+
+    return new DataResponse(
+      200,
+      'Berhasil mendapatkan daftar email orang tua',
+      parentsEmail,
+    );
   }
 
   @Post('students')

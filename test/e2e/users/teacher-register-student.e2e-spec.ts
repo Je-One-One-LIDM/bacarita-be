@@ -13,6 +13,7 @@ import { DataSource } from 'typeorm';
 import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
 import { MailService } from 'src/common/mail/mail.service';
+import * as bcrypt from 'bcrypt';
 
 describe('Teacher Register a Student and its Parent (e2e)', () => {
   let app: INestApplication<App>;
@@ -295,6 +296,135 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
     expect(teacherInDb?.students).toHaveLength(2);
     expect(teacherInDb?.students[0]).toHaveProperty('id', studentInDb1!.id);
     expect(teacherInDb?.students[1]).toHaveProperty('id', studentInDb2!.id);
+  });
+
+  it('POST /teachers/students | must reject a student and NEW parent if parent fullName is empty', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('GET /teachers/students/parents-email | must return empty array if no parent emails exist', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    const response = await requestTestAgent
+      .get('/teachers/students/parents-email')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const body = response.body.data;
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(0);
+  });
+
+  it('GET /teachers/students/parents-email | must return array of parent emails sorted by email', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // register student 1
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // register student 2
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student2',
+        studentFullName: 'Student Two',
+        parentEmail: 'aparent2@gmail.com',
+        parentFullName: 'Parent One',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const response = await requestTestAgent
+      .get('/teachers/students/parents-email')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const body = response.body.data;
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(2);
+    expect(body[0]).toBe('aparent2@gmail.com');
+    expect(body[1]).toBe('parent1@gmail.com');
+  });
+
+  it('GET /teachers/students/parents-email | must reject if invalid token or unauthorized', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .get('/teachers/students/parents-email')
+      .set('Authorization', `Bearer ${token}+invalid-part`)
+      .expect(401);
+  });
+
+  it('GET /teachers/students/parents-email | must reject if user accessed is not a teacher', async () => {
+    // create a student account
+    await dataSource.getRepository(Student).save({
+      id: '0001',
+      username: 'student1',
+      password: await bcrypt.hash('student1password', 10),
+      fullName: 'Student One',
+    });
+
+    // sign in as student
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: 'student1password',
+      })
+      .expect(200);
+    const studentToken = signInResponse.body.data.token;
+
+    // should reject access
+    await requestTestAgent
+      .get('/teachers/students/parents-email')
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(403);
   });
 
   it('POST /teachers/students | must reject if student already exist', async () => {
