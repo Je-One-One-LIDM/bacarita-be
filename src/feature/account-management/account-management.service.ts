@@ -83,6 +83,11 @@ export class AccountManagementService extends ITransactionalService {
 
       if (!parent) {
         isParentAlreadyExists = false;
+        if (!parentFullName) {
+          throw new BadRequestException(
+            `Orang tua dengan email ${parentEmail} belum terdaftar, mohon sertakan nama lengkap orang tua`,
+          );
+        }
 
         const parentUsername: string = parentEmail.split('@')[0];
         parentPassword = this.tokenGeneratorService.numericCode(6);
@@ -153,5 +158,20 @@ export class AccountManagementService extends ITransactionalService {
 
       return savedStudent;
     });
+  }
+
+  public async getAllStudentsParentsEmail(): Promise<string[]> {
+    const parents: Parent[] = await this.parentRepository.find({
+      relations: ['students'],
+      order: {
+        email: 'ASC',
+      },
+    });
+
+    const parentsEmail: string[] = parents
+      .filter((parent) => parent.students && parent.students.length > 0)
+      .map((parent) => parent.email);
+
+    return parentsEmail;
   }
 }
