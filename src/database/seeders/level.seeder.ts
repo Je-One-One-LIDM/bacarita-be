@@ -36,6 +36,7 @@ export class LevelSeeder {
         description:
           'Lala menemukan balon merah di taman dan mengikuti petualangan seru bersamanya.',
         passage: `Di taman kecil, Lala memegang balon merah.\nAngin berhembus lembut.\nBalon itu naik... naik... naik!\n“Oh tidak!” kata Lala.\nBalon terlepas!\nTapi kucing kecil, Mimi, melompat dan menangkap tali balon.\nLala tersenyum. “Terima kasih, Mimi!”\nBalon pun kembali ke tangan Lala.\nLala belajar: hati tenang, pikir jernih, masalah jadi mudah.`,
+        image: '/public/placeholder.webp',
         status: StoryStatus.ACCEPTED,
       },
       {

@@ -80,17 +80,25 @@ export class LevelsService {
         silverCount: levelProgress.silverCount,
         bronzeCount: levelProgress.bronzeCount,
         progress: levelProgress.progress,
+        createdAt: level.createdAt,
+        updatedAt: level.updatedAt,
         stories: level.stories
           .filter((story: Story) => story.status === StoryStatus.ACCEPTED)
+          .sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          )
           .map((story: Story) => {
             const storyResponse: StudentStoryResponseDTO = {
               id: story.id,
               title: story.title,
               description: story.description,
-              imageUrl: story.image,
+              imageUrl: story.imageUrl,
               isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
               isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
               isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+              createdAt: story.createdAt,
+              updatedAt: story.updatedAt,
             };
             return storyResponse;
           }),
