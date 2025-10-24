@@ -1,3 +1,4 @@
+import { Expose } from 'class-transformer';
 import { Student } from 'src/feature/users/entities/student.entity';
 import {
   Column,
@@ -8,9 +9,8 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Level } from './level.entity';
-import { Expose } from 'class-transformer';
 import { StoryMedalPoint } from '../enum/story-medal.enum';
+import { Level } from './level.entity';
 
 @Entity('level_progresses')
 export class LevelProgress {
