@@ -12,6 +12,7 @@ import environmentValidation from './config/environment.validation';
 import { createPinoLoggerOptions } from './core/logger/pino-logger.factory';
 import { AccountManagementModule } from './feature/account-management/account-management.module';
 import { AuthModule } from './feature/auth/auth.module';
+import { LevelsModule } from './feature/levels/levels.module';
 import { UsersModule } from './feature/users/users.module';
 
 const env: string = process.env.NODE_ENV || 'development';
@@ -46,6 +47,8 @@ const env: string = process.env.NODE_ENV || 'development';
     BaseTransactionModule,
 
     MailModule,
+
+    LevelsModule,
   ],
 })
 export class AppModule {}
