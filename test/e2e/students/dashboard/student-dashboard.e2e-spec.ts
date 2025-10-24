@@ -11,7 +11,6 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../../utils/testing-database.utils';
-import { LevelProgress } from 'src/feature/levels/entities/level-progress.entity';
 
 describe('Student Dashboard (e2e)', () => {
   let app: INestApplication<App>;
