@@ -1,15 +1,17 @@
+import { Exclude } from 'class-transformer';
+import { LevelProgress } from 'src/feature/levels/entities/level-progress.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Parent } from './parent.entity';
 import { Teacher } from './teacher.entity';
-import { Exclude } from 'class-transformer';
 
 @Entity('students')
 export class Student {
@@ -37,6 +39,12 @@ export class Student {
   @ManyToOne(() => Parent, (parent: Parent) => parent.students)
   @JoinColumn({ name: 'parent_id' })
   parent: Parent;
+
+  @OneToMany(
+    () => LevelProgress,
+    (levelProgress: LevelProgress) => levelProgress.student,
+  )
+  levelProgresses: LevelProgress[];
 
   @CreateDateColumn()
   createdAt: Date;
