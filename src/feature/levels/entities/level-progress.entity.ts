@@ -9,6 +9,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Level } from './level.entity';
+import { Expose } from 'class-transformer';
+import { StoryMedalPoint } from '../enum/story-medal.enum';
 
 @Entity('level_progresses')
 export class LevelProgress {
@@ -44,6 +46,15 @@ export class LevelProgress {
 
   @Column({ type: 'int', default: 0 })
   bronzeCount: number;
+
+  @Expose()
+  get requiredPoints(): number {
+    const currentPoints: number =
+      this.goldCount * StoryMedalPoint.GOLD +
+      this.silverCount * StoryMedalPoint.SILVER +
+      this.bronzeCount * StoryMedalPoint.BRONZE;
+    return this.level.maxPoints - currentPoints;
+  }
 
   @CreateDateColumn()
   createdAt: Date;

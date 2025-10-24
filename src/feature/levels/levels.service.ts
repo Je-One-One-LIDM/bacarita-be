@@ -67,7 +67,7 @@ export class LevelsService {
         id: level.id,
         name: level.name,
         isUnlocked: levelProgress.isUnlocked,
-        requiredPoints: level.no * 3,
+        requiredPoints: levelProgress.requiredPoints,
         isBonusLevel: level.isBonusLevel,
         maxPoints: level.maxPoints,
         goldCount: levelProgress.goldCount,
@@ -80,9 +80,9 @@ export class LevelsService {
             title: story.title,
             description: story.description,
             imageUrl: story.image,
-            isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions
-            isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions
-            isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions
+            isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+            isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+            isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
           };
           return storyResponse;
         }),

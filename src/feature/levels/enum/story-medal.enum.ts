@@ -1,6 +1,13 @@
 export enum StoryMedal {
-  GOLLD = 'GOLD',
+  GOLD = 'GOLD',
   SILVER = 'SILVER',
-  COPPER = 'COPPER',
+  BRONZE = 'BRONZE',
   NONE = 'NONE',
+}
+
+export enum StoryMedalPoint {
+  GOLD = 3,
+  SILVER = 2,
+  BRONZE = 1,
+  NONE = 0,
 }
