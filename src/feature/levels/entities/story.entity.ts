@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { StoryStatus } from '../enum/story-status.enum';
 import { Level } from './level.entity';
+import { Expose } from 'class-transformer';
 
 @Entity('stories')
 export class Story {
@@ -43,4 +44,12 @@ export class Story {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Expose()
+  get imageUrl(): string | null {
+    if (this.image) {
+      return `${process.env.APP_URL}${this.image}`;
+    }
+    return null;
+  }
 }

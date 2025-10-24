@@ -126,12 +126,16 @@ describe('Student Dashboard (e2e)', () => {
     const story1_level1 = level1.stories[0];
     expect(story1_level1).toBeDefined();
     expect(story1_level1.title).toBe('Lala dan Balon Merah');
+    expect(story1_level1.imageUrl).toBe(
+      `${process.env.APP_URL}/public/placeholder.webp`,
+    );
     expect(story1_level1.isGoldMedal).toBe(false);
     expect(story1_level1.isSilverMedal).toBe(false);
     expect(story1_level1.isBronzeMedal).toBe(false);
     const story2_level1 = level1.stories[1];
     expect(story2_level1).toBeDefined();
     expect(story2_level1.title).toBe('Lala dan Balon Merah 2');
+    expect(story2_level1.imageUrl).toBeNull();
     expect(story2_level1.isGoldMedal).toBe(false);
     expect(story2_level1.isSilverMedal).toBe(false);
     expect(story2_level1.isBronzeMedal).toBe(false);

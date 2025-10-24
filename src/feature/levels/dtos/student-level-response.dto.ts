@@ -14,6 +14,8 @@ export class StudentLevelResponseDTO {
   silverCount: number;
   bronzeCount: number;
   progress: number;
+  createdAt: Date;
+  updatedAt: Date;
   stories: StudentStoryResponseDTO[];
 }
 
@@ -21,8 +23,10 @@ export class StudentStoryResponseDTO {
   id: number;
   title: string;
   description: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   isGoldMedal: boolean;
   isSilverMedal: boolean;
   isBronzeMedal: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
