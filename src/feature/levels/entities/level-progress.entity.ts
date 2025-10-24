@@ -33,7 +33,7 @@ export class LevelProgress {
   level: Level;
 
   @Column({ type: 'boolean', default: false })
-  isUnlocked: boolean;
+  isUnlocked: boolean = false;
 
   @Expose()
   get currentPoints(): number {
@@ -49,13 +49,13 @@ export class LevelProgress {
   }
 
   @Column({ type: 'int', default: 0 })
-  goldCount: number;
+  goldCount: number = 0;
 
   @Column({ type: 'int', default: 0 })
-  silverCount: number;
+  silverCount: number = 0;
 
   @Column({ type: 'int', default: 0 })
-  bronzeCount: number;
+  bronzeCount: number = 0;
 
   @Expose()
   get requiredPoints(): number {
