@@ -28,6 +28,7 @@ export class LevelProgress {
 
   @ManyToOne(() => Level, (level: Level) => level.levelProgresses, {
     onDelete: 'CASCADE',
+    eager: true,
   })
   @JoinColumn({ name: 'level_id' })
   level: Level;
@@ -49,11 +50,16 @@ export class LevelProgress {
 
   @Expose()
   get requiredPoints(): number {
-    const currentPoints: number =
+    const currentPoints =
       this.goldCount * StoryMedalPoint.GOLD +
       this.silverCount * StoryMedalPoint.SILVER +
       this.bronzeCount * StoryMedalPoint.BRONZE;
-    return this.level.maxPoints - currentPoints;
+
+    // target threshold (75% of maxPoints)
+    const targetPoints = this.level.maxPoints * 0.75;
+    const remaining = targetPoints - currentPoints;
+
+    return Math.max(0, Math.ceil(remaining));
   }
 
   @CreateDateColumn()
