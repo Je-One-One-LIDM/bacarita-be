@@ -36,7 +36,7 @@ export class Story {
     enum: StoryStatus,
     default: StoryStatus.WAITING_NEWLY,
   })
-  status: StoryStatus;
+  status: StoryStatus = StoryStatus.WAITING_NEWLY;
 
   @CreateDateColumn()
   createdAt: Date;

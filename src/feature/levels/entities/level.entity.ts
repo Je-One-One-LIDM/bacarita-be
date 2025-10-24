@@ -31,7 +31,7 @@ export class Level {
   }
 
   @Column({ type: 'boolean', default: false })
-  isBonusLevel: boolean;
+  isBonusLevel: boolean = false;
 
   @ManyToOne(() => Teacher, (teacher: Teacher) => teacher.levelsCreated, {
     nullable: true,
