@@ -3,8 +3,6 @@
     "node_modules",
     "dist",
     "coverage",
-    "**/*.spec.ts",
-    "**/*.test.ts"
   ],
   "paths": {
     "src/*": ["src/*"]
