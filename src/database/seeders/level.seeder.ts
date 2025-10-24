@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
 import { StoryStatus } from 'src/feature/levels/enum/story-status.enum';
@@ -23,13 +22,11 @@ export class LevelSeeder {
 
     if (level) {
       await levelRepo.update({ no: levelData.no }, levelData);
-      console.log(`🔄 Updated Level: ${level.fullName}`);
       // Refresh the entity
       level = await levelRepo.findOneByOrFail({ no: levelData.no });
     } else {
       level = levelRepo.create(levelData);
       await levelRepo.save(level);
-      console.log(`✅ Inserted Level: ${level.fullName}`);
     }
 
     // ---------- STORIES ----------
@@ -48,6 +45,13 @@ export class LevelSeeder {
         passage: `2 Di taman kecil, Lala memegang balon merah.\nAngin berhembus lembut.\nBalon itu naik... naik... naik!\n“Oh tidak!” kata Lala.\nBalon terlepas!\nTapi kucing kecil, Mimi, melompat dan menangkap tali balon.\nLala tersenyum. “Terima kasih, Mimi!”\nBalon pun kembali ke tangan Lala.\nLala belajar: hati tenang, pikir jernih, masalah jadi mudah.`,
         status: StoryStatus.ACCEPTED,
       },
+      {
+        title: 'Lala dan Balon Merah 3',
+        description:
+          'Lala menemukan balon merah di taman dan mengikuti petualangan seru bersamanya.',
+        passage: `2 Di taman kecil, Lala memegang balon merah.\nAngin berhembus lembut.\nBalon itu naik... naik... naik!\n“Oh tidak!” kata Lala.\nBalon terlepas!\nTapi kucing kecil, Mimi, melompat dan menangkap tali balon.\nLala tersenyum. “Terima kasih, Mimi!”\nBalon pun kembali ke tangan Lala.\nLala belajar: hati tenang, pikir jernih, masalah jadi mudah.`,
+        status: StoryStatus.WAITING,
+      },
     ];
 
     for (const storyData of storiesData) {
@@ -60,11 +64,9 @@ export class LevelSeeder {
           { title: storyData.title },
           { ...storyData, level },
         );
-        console.log(`🔄 Updated Story: ${storyData.title}`);
       } else {
         const newStory = storyRepo.create({ ...storyData, level });
         await storyRepo.save(newStory);
-        console.log(`✅ Inserted Story: ${storyData.title}`);
       }
     }
   }

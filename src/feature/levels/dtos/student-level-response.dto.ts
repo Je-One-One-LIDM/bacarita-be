@@ -3,7 +3,9 @@
  */
 export class StudentLevelResponseDTO {
   id: number;
+  no: number;
   name: string;
+  fullName: string;
   isUnlocked: boolean;
   requiredPoints: number;
   isBonusLevel: boolean;

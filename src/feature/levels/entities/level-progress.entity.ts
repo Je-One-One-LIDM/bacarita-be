@@ -28,7 +28,6 @@ export class LevelProgress {
 
   @ManyToOne(() => Level, (level: Level) => level.levelProgresses, {
     onDelete: 'CASCADE',
-    eager: true,
   })
   @JoinColumn({ name: 'level_id' })
   level: Level;

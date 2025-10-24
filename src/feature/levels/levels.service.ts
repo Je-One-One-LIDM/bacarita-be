@@ -7,6 +7,8 @@ import {
 } from './dtos/student-level-response.dto';
 import { LevelProgress } from './entities/level-progress.entity';
 import { Level } from './entities/level.entity';
+import { Story } from './entities/story.entity';
+import { StoryStatus } from './enum/story-status.enum';
 
 @Injectable()
 export class LevelsService {
@@ -42,6 +44,7 @@ export class LevelsService {
     const progresses: LevelProgress[] = await this.levelProgressRepository.find(
       {
         where: { student_id: studentId },
+        relations: ['level', 'level.stories'],
       },
     );
 
@@ -56,6 +59,7 @@ export class LevelsService {
           level_id: level.id,
           isUnlocked: level.no === 1 ? true : false,
         });
+        newProgress.level = level;
 
         await this.levelProgressRepository.save(newProgress);
         progressMap.set(level.id, newProgress);
@@ -65,7 +69,9 @@ export class LevelsService {
 
       studentLevelsResponse.push({
         id: level.id,
+        no: level.no,
         name: level.name,
+        fullName: level.fullName,
         isUnlocked: levelProgress.isUnlocked,
         requiredPoints: levelProgress.requiredPoints,
         isBonusLevel: level.isBonusLevel,
@@ -74,18 +80,20 @@ export class LevelsService {
         silverCount: levelProgress.silverCount,
         bronzeCount: levelProgress.bronzeCount,
         progress: levelProgress.progress,
-        stories: level.stories.map((story) => {
-          const storyResponse: StudentStoryResponseDTO = {
-            id: story.id,
-            title: story.title,
-            description: story.description,
-            imageUrl: story.image,
-            isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-            isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-            isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-          };
-          return storyResponse;
-        }),
+        stories: level.stories
+          .filter((story: Story) => story.status === StoryStatus.ACCEPTED)
+          .map((story: Story) => {
+            const storyResponse: StudentStoryResponseDTO = {
+              id: story.id,
+              title: story.title,
+              description: story.description,
+              imageUrl: story.image,
+              isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+              isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+              isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+            };
+            return storyResponse;
+          }),
       });
     }
 

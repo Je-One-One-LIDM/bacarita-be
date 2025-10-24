@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { LevelProgress } from './level-progress.entity';
 import { Story } from './story.entity';
+import { StoryStatus } from '../enum/story-status.enum';
 
 @Entity('levels')
 export class Level {
@@ -47,10 +48,13 @@ export class Level {
 
   @Expose()
   get maxPoints(): number {
-    return (this.stories?.length ?? 0) * 3;
+    const acceptedStories: Story[] = this.stories.filter(
+      (story: Story) => story.status === StoryStatus.ACCEPTED,
+    );
+    return (acceptedStories.length ?? 0) * 3;
   }
 
-  @OneToMany(() => Story, (story: Story) => story.level, { eager: true })
+  @OneToMany(() => Story, (story: Story) => story.level)
   stories: Story[];
 
   @CreateDateColumn()
