@@ -36,8 +36,18 @@ export class LevelProgress {
   @Column({ type: 'boolean', default: false })
   isUnlocked: boolean;
 
-  @Column({ type: 'int', default: 0 })
-  progress: number;
+  @Expose()
+  get currentPoints(): number {
+    return this.calculateCurrentPoints();
+  }
+
+  @Expose()
+  get progress(): number {
+    const currentPoints: number = this.calculateCurrentPoints();
+    const percentage: number = currentPoints / this.level.maxPoints;
+
+    return Math.ceil(percentage * 100);
+  }
 
   @Column({ type: 'int', default: 0 })
   goldCount: number;
@@ -50,14 +60,11 @@ export class LevelProgress {
 
   @Expose()
   get requiredPoints(): number {
-    const currentPoints =
-      this.goldCount * StoryMedalPoint.GOLD +
-      this.silverCount * StoryMedalPoint.SILVER +
-      this.bronzeCount * StoryMedalPoint.BRONZE;
+    const currentPoints: number = this.calculateCurrentPoints();
 
     // target threshold (75% of maxPoints)
-    const targetPoints = this.level.maxPoints * 0.75;
-    const remaining = targetPoints - currentPoints;
+    const targetPoints: number = this.level.maxPoints * 0.75;
+    const remaining: number = targetPoints - currentPoints;
 
     return Math.max(0, Math.ceil(remaining));
   }
@@ -67,4 +74,12 @@ export class LevelProgress {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  private calculateCurrentPoints(): number {
+    return (
+      this.goldCount * StoryMedalPoint.GOLD +
+      this.silverCount * StoryMedalPoint.SILVER +
+      this.bronzeCount * StoryMedalPoint.BRONZE
+    );
+  }
 }

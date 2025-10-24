@@ -50,7 +50,7 @@ export class Level {
     return (this.stories?.length ?? 0) * 3;
   }
 
-  @OneToMany(() => Story, (story: Story) => story.level)
+  @OneToMany(() => Story, (story: Story) => story.level, { eager: true })
   stories: Story[];
 
   @CreateDateColumn()
