@@ -52,4 +52,12 @@ export class Story {
     }
     return null;
   }
+
+  @Expose()
+  get passageSentences(): string[] {
+    return this.passage
+      .split(/[.\n]+/)
+      .map((sentence) => sentence.trim())
+      .filter((sentence) => sentence.length > 0);
+  }
 }
