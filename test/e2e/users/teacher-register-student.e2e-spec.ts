@@ -396,13 +396,16 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
         relations: ['level', 'student'],
       });
 
-    expect(levelProgressInDb).toHaveLength(2);
+    expect(levelProgressInDb).toHaveLength(3);
     expect(levelProgressInDb[0]).toHaveProperty('level.no', 1);
     expect(levelProgressInDb[0]).toHaveProperty('isUnlocked', true);
     expect(levelProgressInDb[0]).toHaveProperty('isCompleted', true);
     expect(levelProgressInDb[1]).toHaveProperty('level.no', 2);
     expect(levelProgressInDb[1]).toHaveProperty('isUnlocked', true);
     expect(levelProgressInDb[1]).toHaveProperty('isCompleted', true);
+    expect(levelProgressInDb[2]).toHaveProperty('level.no', 3);
+    expect(levelProgressInDb[2]).toHaveProperty('isUnlocked', true);
+    expect(levelProgressInDb[2]).toHaveProperty('isCompleted', false);
   });
 
   it('POST /teachers/students | must reject if jumped level is invalid (lt 1, gt levels length) ', async () => {
