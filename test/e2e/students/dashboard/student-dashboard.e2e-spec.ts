@@ -196,6 +196,22 @@ describe('Student Dashboard (e2e)', () => {
     expect(story2_level.isBronzeMedal).toBe(false);
   });
 
+  it('GET /students/levels/:id | must return 404 if level not found', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .get(`/students/levels/999999`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
   it('GET /students/levels | must reject if user is not a student', async () => {
     const signInResponse = await requestTestAgent
       .post('/auth/teachers/login')
