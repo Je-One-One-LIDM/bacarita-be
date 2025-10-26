@@ -6,6 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { instanceToPlain } from 'class-transformer';
 import { DataResponse } from 'src/core/http/http-response';
 import { AccountManagementService } from 'src/feature/account-management/account-management.service';
 import { Auth } from 'src/feature/auth/decorators/auth.decorator';
@@ -17,6 +18,7 @@ import { Student } from '../entities/student.entity';
 import { Teacher } from '../entities/teacher.entity';
 import { CreateStudentAndParentDTO } from './dto/create-student-parent.dto';
 import { CreateTeacherDTO } from './dto/create-teacher.dto';
+import { IParentProfile } from './interfaces/parent-profile.interace';
 import { TeacherService } from './teacher.service';
 
 @Controller('teachers')
@@ -43,14 +45,14 @@ export class TeacherController {
   @Auth(AuthRole.TEACHER)
   public async getAllStudentsParentsEmail(
     @CurrentUser() _: ICurrentUser,
-  ): Promise<DataResponse<string[]>> {
-    const parentsEmail: string[] =
-      await this.accountManagementService.getAllStudentsParentsEmail();
+  ): Promise<DataResponse<IParentProfile[]>> {
+    const parentsProfile: IParentProfile[] =
+      await this.accountManagementService.getAllStudentsParentsEmailAndFullname();
 
     return new DataResponse(
       200,
       'Berhasil mendapatkan daftar email orang tua',
-      parentsEmail,
+      instanceToPlain(parentsProfile) as IParentProfile[],
     );
   }
 

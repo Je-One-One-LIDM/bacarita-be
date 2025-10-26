@@ -339,7 +339,7 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
     expect(body).toHaveLength(0);
   });
 
-  it('GET /teachers/students/parents-email | must return array of parent emails sorted by email', async () => {
+  it('GET /teachers/students/parents-email | must return array of parent emails and fullnames sorted by email', async () => {
     const signInResponse = await requestTestAgent
       .post('/auth/teachers/login')
       .send({
@@ -368,7 +368,7 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
         studentUsername: 'student2',
         studentFullName: 'Student Two',
         parentEmail: 'aparent2@gmail.com',
-        parentFullName: 'Parent One',
+        parentFullName: 'Parent Two Aparent',
       })
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
@@ -381,8 +381,10 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
     const body = response.body.data;
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(2);
-    expect(body[0]).toBe('aparent2@gmail.com');
-    expect(body[1]).toBe('parent1@gmail.com');
+    expect(body[0].email).toBe('aparent2@gmail.com');
+    expect(body[0].fullName).toBe('Parent Two Aparent');
+    expect(body[1].email).toBe('parent1@gmail.com');
+    expect(body[1].fullName).toBe('Parent One');
   });
 
   it('GET /teachers/students/parents-email | must reject if invalid token or unauthorized', async () => {

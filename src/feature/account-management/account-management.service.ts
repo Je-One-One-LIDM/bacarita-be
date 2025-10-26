@@ -13,6 +13,7 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Parent } from '../users/entities/parent.entity';
 import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
+import { IParentProfile } from '../users/teacher/interfaces/parent-profile.interace';
 
 @Injectable()
 export class AccountManagementService extends ITransactionalService {
@@ -160,7 +161,9 @@ export class AccountManagementService extends ITransactionalService {
     });
   }
 
-  public async getAllStudentsParentsEmail(): Promise<string[]> {
+  public async getAllStudentsParentsEmailAndFullname(): Promise<
+    IParentProfile[]
+  > {
     const parents: Parent[] = await this.parentRepository.find({
       relations: ['students'],
       order: {
@@ -168,10 +171,16 @@ export class AccountManagementService extends ITransactionalService {
       },
     });
 
-    const parentsEmail: string[] = parents
+    const parentsProfile: IParentProfile[] = parents
       .filter((parent) => parent.students && parent.students.length > 0)
-      .map((parent) => parent.email);
+      .map(
+        (parent) =>
+          ({
+            email: parent.email,
+            fullName: parent.fullName,
+          }) as IParentProfile,
+      );
 
-    return parentsEmail;
+    return parentsProfile;
   }
 }
