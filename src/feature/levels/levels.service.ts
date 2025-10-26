@@ -38,7 +38,88 @@ export class LevelsService extends ITransactionalService {
     });
   }
 
-  public async getLevelForStudentWithProgresses(
+  public async getLevelForStudentWithProgressesById(
+    studentId: string,
+    levelId: number,
+  ): Promise<StudentLevelResponseDTO> {
+    return this.withTransaction<StudentLevelResponseDTO>(
+      async (manager: EntityManager) => {
+        const levelRepo: Repository<Level> = manager.getRepository(Level);
+        const levelProgressRepo: Repository<LevelProgress> =
+          manager.getRepository(LevelProgress);
+
+        const level: Level | null = await levelRepo.findOne({
+          where: { id: levelId },
+          relations: ['stories', 'levelProgresses'],
+          order: { no: 'ASC' },
+        });
+        if (!level) {
+          throw new NotFoundException(
+            `Level dengan id ${levelId} tidak ditemukan`,
+          );
+        }
+
+        let levelProgress: LevelProgress;
+        const existingProgresses: LevelProgress | null =
+          await levelProgressRepo.findOne({
+            where: { student_id: studentId, level_id: levelId },
+            relations: ['level', 'level.stories'],
+          });
+        if (existingProgresses) {
+          levelProgress = existingProgresses;
+        } else {
+          const newProgress: LevelProgress = levelProgressRepo.create({
+            student_id: studentId,
+            level_id: level.id,
+            isUnlocked: level.no === 1 ? true : false,
+          });
+          newProgress.level = level;
+          await levelProgressRepo.save(newProgress);
+          levelProgress = newProgress;
+        }
+
+        return {
+          id: level.id,
+          no: level.no,
+          name: level.name,
+          fullName: level.fullName,
+          isUnlocked: levelProgress.isUnlocked,
+          requiredPoints: levelProgress.requiredPoints,
+          isBonusLevel: level.isBonusLevel,
+          maxPoints: level.maxPoints,
+          goldCount: levelProgress.goldCount,
+          silverCount: levelProgress.silverCount,
+          bronzeCount: levelProgress.bronzeCount,
+          progress: levelProgress.progress,
+          createdAt: level.createdAt,
+          updatedAt: level.updatedAt,
+          stories: level.stories
+            .filter((story: Story) => story.status === StoryStatus.ACCEPTED)
+            .sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime(),
+            )
+            .map((story: Story) => {
+              const storyResponse: StudentStoryResponseDTO = {
+                id: story.id,
+                title: story.title,
+                description: story.description,
+                imageUrl: story.imageUrl,
+                isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+                isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+                isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+                createdAt: story.createdAt,
+                updatedAt: story.updatedAt,
+              };
+              return storyResponse;
+            }),
+        } as StudentLevelResponseDTO;
+      },
+    );
+  }
+
+  public async getLevelsForStudentWithProgresses(
     studentId: string,
   ): Promise<StudentLevelResponseDTO[]> {
     return this.withTransaction<StudentLevelResponseDTO[]>(

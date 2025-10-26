@@ -141,6 +141,60 @@ describe('Student Dashboard (e2e)', () => {
     expect(story2_level1.isBronzeMedal).toBe(false);
   });
 
+  it('GET /students/levels/:id | must return student level and its correct data', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    const levelIdResponse = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const levelId = levelIdResponse.body.data[0].id;
+
+    const response = await requestTestAgent
+      .get(`/students/levels/${levelId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const body = response.body.data;
+
+    const level = body;
+    expect(level.no).toBe(1);
+    expect(level.name).toBe('Lala dan Balon Merah');
+    expect(level.fullName).toBe('Level 1. Lala dan Balon Merah');
+    expect(level.isBonusLevel).toBe(false);
+    expect(level.maxPoints).toBe(6);
+    expect(level.isUnlocked).toBe(true);
+    expect(level.requiredPoints).toBe(5);
+    expect(level.goldCount).toBe(0);
+    expect(level.silverCount).toBe(0);
+    expect(level.bronzeCount).toBe(0);
+    expect(level.progress).toBe(0);
+
+    const story1_level = level.stories[0];
+    expect(story1_level).toBeDefined();
+    expect(story1_level.title).toBe('Lala dan Balon Merah');
+    expect(story1_level.imageUrl).toBe(
+      `${process.env.APP_URL}/public/placeholder.webp`,
+    );
+    expect(story1_level.isGoldMedal).toBe(false);
+    expect(story1_level.isSilverMedal).toBe(false);
+    expect(story1_level.isBronzeMedal).toBe(false);
+    const story2_level = level.stories[1];
+    expect(story2_level).toBeDefined();
+    expect(story2_level.title).toBe('Lala dan Balon Merah 2');
+    expect(story2_level.imageUrl).toBeNull();
+    expect(story2_level.isGoldMedal).toBe(false);
+    expect(story2_level.isSilverMedal).toBe(false);
+    expect(story2_level.isBronzeMedal).toBe(false);
+  });
+
   it('GET /students/levels | must reject if user is not a student', async () => {
     const signInResponse = await requestTestAgent
       .post('/auth/teachers/login')

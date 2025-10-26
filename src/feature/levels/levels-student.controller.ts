@@ -3,6 +3,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
 import { DataResponse } from 'src/core/http/http-response';
@@ -26,12 +28,35 @@ export class LevelsStudentController {
     @CurrentUser() currentUser: ICurrentUser,
   ): Promise<DataResponse<StudentLevelResponseDTO[]>> {
     const levels: StudentLevelResponseDTO[] =
-      await this.levelsService.getLevelForStudentWithProgresses(currentUser.id);
+      await this.levelsService.getLevelsForStudentWithProgresses(
+        currentUser.id,
+      );
 
     return new DataResponse<StudentLevelResponseDTO[]>(
       HttpStatus.OK,
       `Berhasil mendapatkan daftar level dan progressnya untuk murid ${currentUser.username}`,
       levels,
+    );
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.OK)
+  public async getStudentLevelById(
+    @Param('id', ParseIntPipe) levelId: number,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<DataResponse<StudentLevelResponseDTO>> {
+    const level: StudentLevelResponseDTO =
+      await this.levelsService.getLevelForStudentWithProgressesById(
+        currentUser.id,
+        levelId,
+      );
+
+    return new DataResponse<StudentLevelResponseDTO>(
+      HttpStatus.OK,
+      `Berhasil mendapatkan data level ${level.fullName} dan progressnya untuk murid ${currentUser.username}`,
+      level,
     );
   }
 }
