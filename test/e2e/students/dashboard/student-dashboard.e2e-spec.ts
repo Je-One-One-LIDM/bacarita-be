@@ -107,8 +107,9 @@ describe('Student Dashboard (e2e)', () => {
     const body = response.body.data;
     expect(body).toBeDefined();
     expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBe(1);
+    expect(body.length).toBe(2);
     expect(body[0].stories.length).toBe(2);
+    expect(body[1].stories.length).toBe(3);
 
     const level1 = body[0];
     expect(level1.no).toBe(1);
