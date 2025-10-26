@@ -35,6 +35,8 @@ $ cp .env.example .env.test
 
 $ mkdir logs
 
+$ npm run db:seed
+
 $ npm run start:dev
 
 ```

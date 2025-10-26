@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Student } from './student.entity';
 import { Exclude } from 'class-transformer';
+import { Level } from 'src/feature/levels/entities/level.entity';
 
 @Entity('teachers')
 export class Teacher {
@@ -36,6 +37,9 @@ export class Teacher {
 
   @OneToMany(() => Student, (student: Student) => student.teacher)
   students: Student[];
+
+  @OneToMany(() => Level, (level: Level) => level.teacher)
+  levelsCreated: Level[];
 
   @CreateDateColumn()
   createdAt: Date;

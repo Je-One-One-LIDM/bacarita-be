@@ -5,6 +5,7 @@ export enum AuthDecorator {
 export enum AuthRole {
   ANY = 'any',
   ADMIN = 'admin',
+  CURATOR = 'curator',
   TEACHER = 'teacher',
   STUDENT = 'student',
   PARENT = 'parent',
