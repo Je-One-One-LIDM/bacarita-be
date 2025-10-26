@@ -71,6 +71,7 @@ export class TeacherController {
         createStudentAndParentDto.parentEmail,
         currentTeacher.id,
         createStudentAndParentDto.parentFullName,
+        createStudentAndParentDto.jumpLevelTo,
       );
 
     return new DataResponse(201, 'Berhasil mendaftarkan siswa', newlyStudent);

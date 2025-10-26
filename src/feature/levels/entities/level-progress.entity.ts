@@ -42,6 +42,8 @@ export class LevelProgress {
 
   @Expose()
   get progress(): number {
+    if (this.isCompleted) return 100;
+
     const currentPoints: number = this.calculateCurrentPoints();
     const percentage: number = currentPoints / this.level.maxPoints;
 
@@ -57,8 +59,13 @@ export class LevelProgress {
   @Column({ type: 'int', default: 0 })
   bronzeCount: number = 0;
 
+  @Column({ type: 'boolean', default: false })
+  isCompleted: boolean = false;
+
   @Expose()
   get requiredPoints(): number {
+    if (this.isCompleted) return 0;
+
     const currentPoints: number = this.calculateCurrentPoints();
 
     // target threshold (75% of maxPoints)

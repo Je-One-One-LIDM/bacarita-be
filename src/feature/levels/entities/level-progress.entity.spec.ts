@@ -47,4 +47,17 @@ describe('Unit Test: LevelProgress Entity', () => {
     progress.goldCount = 2; // currentPoints = 6
     expect(progress.requiredPoints).toBe(0);
   });
+
+  it('must return 0 requiredPoints; 100 progress if already completed', () => {
+    const level = new Level();
+    level.stories = [
+      { status: StoryStatus.ACCEPTED } as Story,
+      { status: StoryStatus.ACCEPTED } as Story,
+    ]; // maxPoints = 6, target = 4.5 -> 5
+    const progress = new LevelProgress();
+    progress.level = level;
+    progress.isCompleted = true;
+    expect(progress.progress).toBe(100);
+    expect(progress.requiredPoints).toBe(0);
+  });
 });

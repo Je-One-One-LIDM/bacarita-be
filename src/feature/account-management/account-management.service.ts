@@ -14,6 +14,8 @@ import { Parent } from '../users/entities/parent.entity';
 import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
 import { IParentProfile } from '../users/teacher/interfaces/parent-profile.interace';
+import { Level } from '../levels/entities/level.entity';
+import { LevelProgress } from '../levels/entities/level-progress.entity';
 
 @Injectable()
 export class AccountManagementService extends ITransactionalService {
@@ -45,11 +47,15 @@ export class AccountManagementService extends ITransactionalService {
     parentEmail: string,
     teacherId: string,
     parentFullName?: string,
+    jumpLevelTo?: number,
   ): Promise<Student> {
     return this.withTransaction<Student>(async (manager: EntityManager) => {
       const studentRepo: Repository<Student> = manager.getRepository(Student);
       const parentRepo: Repository<Parent> = manager.getRepository(Parent);
       const teacherRepo: Repository<Teacher> = manager.getRepository(Teacher);
+      const levelRepo: Repository<Level> = manager.getRepository(Level);
+      const levelProgressRepo: Repository<LevelProgress> =
+        manager.getRepository(LevelProgress);
 
       let isParentAlreadyExists: boolean = true;
       let parentPassword: string;
@@ -120,6 +126,36 @@ export class AccountManagementService extends ITransactionalService {
       student.teacher = teacher;
 
       const savedStudent: Student = await studentRepo.save(student);
+
+      if (jumpLevelTo) {
+        const levels: Level[] = await levelRepo.find({
+          where: { isBonusLevel: false },
+          order: { no: 'ASC' },
+        });
+
+        if (
+          jumpLevelTo < 1 ||
+          jumpLevelTo > levels.length ||
+          jumpLevelTo === 0
+        ) {
+          throw new BadRequestException(
+            `Loncatan level tidak valid. Harus di antara 1 hingga ${levels.length}`,
+          );
+        }
+
+        for (const level of levels) {
+          if (level.no <= jumpLevelTo) {
+            const levelProgress: LevelProgress = levelProgressRepo.create({
+              student_id: savedStudent.id,
+              level_id: level.id,
+              isUnlocked: true,
+              isCompleted: true,
+            });
+            levelProgress.level = level;
+            await levelProgressRepo.save(levelProgress);
+          }
+        }
+      }
 
       if (!isParentAlreadyExists) {
         try {

@@ -117,6 +117,7 @@ describe('Student Dashboard (e2e)', () => {
     expect(level1.fullName).toBe('Level 1. Lala dan Balon Merah');
     expect(level1.isBonusLevel).toBe(false);
     expect(level1.maxPoints).toBe(6);
+    expect(level1.isCompleted).toBe(false);
     expect(level1.isUnlocked).toBe(true);
     expect(level1.requiredPoints).toBe(5);
     expect(level1.goldCount).toBe(0);
@@ -172,6 +173,7 @@ describe('Student Dashboard (e2e)', () => {
     expect(level.isBonusLevel).toBe(false);
     expect(level.maxPoints).toBe(6);
     expect(level.isUnlocked).toBe(true);
+    expect(level.isCompleted).toBe(false);
     expect(level.requiredPoints).toBe(5);
     expect(level.goldCount).toBe(0);
     expect(level.silverCount).toBe(0);

@@ -7,12 +7,13 @@ export class StudentLevelResponseDTO {
   name: string;
   fullName: string;
   isUnlocked: boolean;
-  requiredPoints: number;
   isBonusLevel: boolean;
   maxPoints: number;
   goldCount: number;
   silverCount: number;
   bronzeCount: number;
+  isCompleted: boolean;
+  requiredPoints: number;
   progress: number;
   createdAt: Date;
   updatedAt: Date;
