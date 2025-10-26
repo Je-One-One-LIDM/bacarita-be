@@ -31,6 +31,7 @@ export class LevelsService extends ITransactionalService {
   public async getLevels(): Promise<Level[]> {
     return this.levelRepository.find({
       relations: ['stories'],
+      where: { isBonusLevel: false },
       order: {
         no: 'ASC',
         name: 'ASC',
