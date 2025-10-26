@@ -71,6 +71,34 @@ export class LevelSeeder {
             },
           ],
         },
+        {
+          no: 3,
+          name: 'Rafi dan Sepatu Hujan',
+          isBonusLevel: false,
+          stories: [
+            {
+              title: 'Nia dan Bintang yang Jatuh 1',
+              description: 'Deskripsi 1.',
+              passage: `Setiap malam, Nia menatap langit.\nIa suka bintang-bintang yang berkelip.\nSuatu malam, satu bintang jatuh!\nNia menutup mata dan berdoa.\n'Aku ingin berani bicara di kelas,' bisiknya.\nKeesokan harinya, Nia angkat tangan saat guru bertanya.\nTeman-teman bertepuk tangan.\nNia tersenyum — bintang itu mendengarnya.\nKadang keberanian datang saat hati percaya.`,
+              image: '/public/placeholder.webp',
+              status: StoryStatus.ACCEPTED,
+            },
+            {
+              title: 'Nia dan Bintang yang Jatuh 2',
+              description: 'Deskripsi 2.',
+              passage: `Setiap malam, Nia menatap langit.\nIa suka bintang-bintang yang berkelip.\nSuatu malam, satu bintang jatuh!\nNia menutup mata dan berdoa.\n'Aku ingin berani bicara di kelas,' bisiknya.\nKeesokan harinya, Nia angkat tangan saat guru bertanya.\nTeman-teman bertepuk tangan.\nNia tersenyum — bintang itu mendengarnya.\nKadang keberanian datang saat hati percaya.`,
+              image: '/public/placeholder.webp',
+              status: StoryStatus.ACCEPTED,
+            },
+            {
+              title: 'Nia dan Bintang yang Jatuh 3',
+              description: 'Deskripsi 3.',
+              passage: `Setiap malam, Nia menatap langit.\nIa suka bintang-bintang yang berkelip.\nSuatu malam, satu bintang jatuh!\nNia menutup mata dan berdoa.\n'Aku ingin berani bicara di kelas,' bisiknya.\nKeesokan harinya, Nia angkat tangan saat guru bertanya.\nTeman-teman bertepuk tangan.\nNia tersenyum — bintang itu mendengarnya.\nKadang keberanian datang saat hati percaya.`,
+              image: '/public/placeholder.webp',
+              status: StoryStatus.ACCEPTED,
+            },
+          ],
+        },
       ];
 
       for (const levelData of levelsData) {

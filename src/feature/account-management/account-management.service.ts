@@ -143,13 +143,15 @@ export class AccountManagementService extends ITransactionalService {
           );
         }
 
+        const maxLevelToUnlock: number = jumpLevelTo;
+        const levelToUnlock: number = jumpLevelTo + 1;
         for (const level of levels) {
-          if (level.no <= jumpLevelTo) {
+          if (level.no <= levelToUnlock) {
             const levelProgress: LevelProgress = levelProgressRepo.create({
               student_id: savedStudent.id,
               level_id: level.id,
               isUnlocked: true,
-              isCompleted: true,
+              isCompleted: level.no <= maxLevelToUnlock ? true : false,
             });
             levelProgress.level = level;
             await levelProgressRepo.save(levelProgress);
