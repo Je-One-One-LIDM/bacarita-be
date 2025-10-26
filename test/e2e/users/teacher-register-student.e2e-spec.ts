@@ -14,6 +14,8 @@ import createTestingApp from '../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../utils/testing-database.utils';
 import { MailService } from 'src/common/mail/mail.service';
 import * as bcrypt from 'bcrypt';
+import { LevelSeeder } from 'src/database/seeders/level.seeder';
+import { LevelProgress } from 'src/feature/levels/entities/level-progress.entity';
 
 describe('Teacher Register a Student and its Parent (e2e)', () => {
   let app: INestApplication<App>;
@@ -197,6 +199,13 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
     expect(teacherInDb).toBeDefined();
     expect(teacherInDb?.students).toHaveLength(1);
     expect(teacherInDb?.students[0]).toHaveProperty('id', studentInDb!.id);
+
+    const levelProgressInDb: LevelProgress[] = await dataSource
+      .getRepository(LevelProgress)
+      .find({
+        where: { student: { id: studentInDb!.id } },
+      });
+    expect(levelProgressInDb).toHaveLength(0);
   });
 
   it('POST /teachers/students | must register a second student with same parent as the first student if request is valid', async () => {
@@ -296,6 +305,154 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
     expect(teacherInDb?.students).toHaveLength(2);
     expect(teacherInDb?.students[0]).toHaveProperty('id', studentInDb1!.id);
     expect(teacherInDb?.students[1]).toHaveProperty('id', studentInDb2!.id);
+  });
+
+  it('POST /teachers/students | must handle jumped level for a student', async () => {
+    const levelSeeder: LevelSeeder = new LevelSeeder(dataSource);
+    await levelSeeder.run();
+
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    const response = await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+        jumpLevelTo: 2,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body = response.body.data;
+    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty('username', 'student1');
+    expect(body).toHaveProperty('fullName', 'Student One');
+    expect(body).not.toHaveProperty('password');
+    expect(body).not.toHaveProperty('token');
+    expect(body).toHaveProperty('createdAt');
+    expect(body).toHaveProperty('updatedAt');
+    expect(body).toHaveProperty('teacher');
+    expect(body.teacher).toHaveProperty('id');
+    expect(body.teacher).toHaveProperty('email', 'teacher1@gmail.com');
+    expect(body.teacher).toHaveProperty('username', 'teacher1');
+    expect(body.teacher).toHaveProperty('fullName', 'Teacher One');
+    expect(body.teacher).not.toHaveProperty('password');
+    expect(body.teacher).not.toHaveProperty('token');
+    expect(body.teacher).toHaveProperty('schoolName', 'School Name 1');
+    expect(body.teacher).toHaveProperty('createdAt');
+    expect(body.teacher).toHaveProperty('updatedAt');
+    expect(body).toHaveProperty('parent');
+    expect(body.parent).toHaveProperty('id');
+    expect(body.parent).toHaveProperty('username', 'parent1');
+    expect(body.parent).toHaveProperty('email', 'parent1@gmail.com');
+    expect(body.parent).toHaveProperty('fullName', 'Parent One');
+    expect(body.parent).not.toHaveProperty('password');
+    expect(body.parent).not.toHaveProperty('token');
+    expect(body.parent).toHaveProperty('createdAt');
+    expect(body.parent).toHaveProperty('updatedAt');
+
+    const studentInDb = await dataSource.getRepository(Student).findOne({
+      where: { id: body.id },
+      relations: ['parent', 'teacher'],
+    });
+    expect(studentInDb).toBeDefined();
+    expect(studentInDb).toHaveProperty('username', 'student1');
+    expect(studentInDb).toHaveProperty('fullName', 'Student One');
+    const parentInDb: Parent | null = await dataSource
+      .getRepository(Parent)
+      .findOne({
+        where: { id: studentInDb!.parent.id },
+        relations: ['students'],
+      });
+    expect(parentInDb).toBeDefined();
+    expect(parentInDb).toHaveProperty('username', 'parent1');
+    expect(parentInDb).toHaveProperty('email', 'parent1@gmail.com');
+    expect(parentInDb).toHaveProperty('fullName', 'Parent One');
+    expect(parentInDb?.students).toHaveLength(1);
+    expect(parentInDb?.students[0]).toHaveProperty('id', studentInDb!.id);
+    const teacherInDb: Teacher | null = await dataSource
+      .getRepository(Teacher)
+      .findOne({
+        where: { id: body.teacher.id },
+        relations: ['students'],
+      });
+    expect(teacherInDb).toBeDefined();
+    expect(teacherInDb?.students).toHaveLength(1);
+    expect(teacherInDb?.students[0]).toHaveProperty('id', studentInDb!.id);
+
+    const levelProgressInDb: LevelProgress[] = await dataSource
+      .getRepository(LevelProgress)
+      .find({
+        where: { student: { id: studentInDb!.id } },
+        relations: ['level', 'student'],
+      });
+
+    expect(levelProgressInDb).toHaveLength(2);
+    expect(levelProgressInDb[0]).toHaveProperty('level.no', 1);
+    expect(levelProgressInDb[0]).toHaveProperty('isUnlocked', true);
+    expect(levelProgressInDb[0]).toHaveProperty('isCompleted', true);
+    expect(levelProgressInDb[1]).toHaveProperty('level.no', 2);
+    expect(levelProgressInDb[1]).toHaveProperty('isUnlocked', true);
+    expect(levelProgressInDb[1]).toHaveProperty('isCompleted', true);
+  });
+
+  it('POST /teachers/students | must reject if jumped level is invalid (lt 1, gt levels length) ', async () => {
+    const levelSeeder: LevelSeeder = new LevelSeeder(dataSource);
+    await levelSeeder.run();
+
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+        jumpLevelTo: -1,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+        jumpLevelTo: 0,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student1',
+        studentFullName: 'Student One',
+        parentEmail: 'parent1@gmail.com',
+        parentFullName: 'Parent One',
+        jumpLevelTo: 99999,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
   });
 
   it('POST /teachers/students | must reject a student and NEW parent if parent fullName is empty', async () => {

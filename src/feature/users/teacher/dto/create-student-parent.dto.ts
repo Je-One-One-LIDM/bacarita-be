@@ -2,7 +2,9 @@ import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   Matches,
   MaxLength,
@@ -34,4 +36,9 @@ export class CreateStudentAndParentDTO {
   @IsString({ message: 'Nama orang tua harus berupa string' })
   @MaxLength(255, { message: 'Nama orang tua maksimal 255 karakter' })
   parentFullName?: string;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'Loncatan level harus berupa angka' })
+  @IsPositive({ message: 'Loncatan level harus berupa angka positif' })
+  jumpLevelTo?: number;
 }

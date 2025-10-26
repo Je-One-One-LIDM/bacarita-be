@@ -79,18 +79,19 @@ export class LevelsService extends ITransactionalService {
           levelProgress = newProgress;
         }
 
-        return {
+        const response: StudentLevelResponseDTO = {
           id: level.id,
           no: level.no,
           name: level.name,
           fullName: level.fullName,
           isUnlocked: levelProgress.isUnlocked,
-          requiredPoints: levelProgress.requiredPoints,
           isBonusLevel: level.isBonusLevel,
           maxPoints: level.maxPoints,
           goldCount: levelProgress.goldCount,
           silverCount: levelProgress.silverCount,
           bronzeCount: levelProgress.bronzeCount,
+          isCompleted: levelProgress.isCompleted,
+          requiredPoints: levelProgress.requiredPoints,
           progress: levelProgress.progress,
           createdAt: level.createdAt,
           updatedAt: level.updatedAt,
@@ -115,7 +116,9 @@ export class LevelsService extends ITransactionalService {
               };
               return storyResponse;
             }),
-        } as StudentLevelResponseDTO;
+        };
+
+        return response;
       },
     );
   }
@@ -169,12 +172,13 @@ export class LevelsService extends ITransactionalService {
             name: level.name,
             fullName: level.fullName,
             isUnlocked: levelProgress.isUnlocked,
-            requiredPoints: levelProgress.requiredPoints,
             isBonusLevel: level.isBonusLevel,
             maxPoints: level.maxPoints,
             goldCount: levelProgress.goldCount,
             silverCount: levelProgress.silverCount,
             bronzeCount: levelProgress.bronzeCount,
+            isCompleted: levelProgress.isCompleted,
+            requiredPoints: levelProgress.requiredPoints,
             progress: levelProgress.progress,
             createdAt: level.createdAt,
             updatedAt: level.updatedAt,
