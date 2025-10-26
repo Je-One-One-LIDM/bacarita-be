@@ -48,7 +48,7 @@ export class LevelsStudentController {
     @CurrentUser() currentUser: ICurrentUser,
   ): Promise<DataResponse<StudentLevelResponseDTO>> {
     const level: StudentLevelResponseDTO =
-      await this.levelsService.getLevelForStudentWithProgressesById(
+      await this.levelsService.getLevelByIdForStudentWithProgresses(
         currentUser.id,
         levelId,
       );

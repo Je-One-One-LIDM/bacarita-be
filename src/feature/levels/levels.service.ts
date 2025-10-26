@@ -38,7 +38,7 @@ export class LevelsService extends ITransactionalService {
     });
   }
 
-  public async getLevelForStudentWithProgressesById(
+  public async getLevelByIdForStudentWithProgresses(
     studentId: string,
     levelId: number,
   ): Promise<StudentLevelResponseDTO> {
