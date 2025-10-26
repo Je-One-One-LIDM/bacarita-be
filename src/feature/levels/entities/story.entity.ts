@@ -55,7 +55,11 @@ export class Story {
 
   @Expose()
   get passageSentences(): string[] {
-    return this.passage
+    return Story.passageToSentences(this.passage);
+  }
+
+  public static passageToSentences(passage: string): string[] {
+    return passage
       .split(/[.\n]+/)
       .map((sentence) => sentence.trim())
       .filter((sentence) => sentence.length > 0);

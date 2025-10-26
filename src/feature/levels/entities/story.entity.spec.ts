@@ -28,4 +28,15 @@ describe('Unit Test: Story Entity', () => {
       'fifth sentence',
     ]);
   });
+
+  it('(static passageToSenteces) must split passage to sentences correctly', () => {
+    const passage: string =
+      'Test passage\nThis is second sentence! And the third one?. \nFourth sentence.\nfifth sentence';
+    expect(Story.passageToSentences(passage)).toEqual([
+      'Test passage',
+      'This is second sentence! And the third one?',
+      'Fourth sentence',
+      'fifth sentence',
+    ]);
+  });
 });
