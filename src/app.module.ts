@@ -14,6 +14,7 @@ import { AccountManagementModule } from './feature/account-management/account-ma
 import { AuthModule } from './feature/auth/auth.module';
 import { LevelsModule } from './feature/levels/levels.module';
 import { UsersModule } from './feature/users/users.module';
+import { TestSessionModule } from './feature/test-session/test-session.module';
 
 const env: string = process.env.NODE_ENV || 'development';
 
@@ -49,6 +50,8 @@ const env: string = process.env.NODE_ENV || 'development';
     MailModule,
 
     LevelsModule,
+
+    TestSessionModule,
   ],
 })
 export class AppModule {}
