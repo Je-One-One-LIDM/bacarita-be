@@ -1,15 +1,18 @@
+import { Expose } from 'class-transformer';
+import { TestSession } from 'src/feature/test-session/entities/test-session.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { StoryStatus } from '../enum/story-status.enum';
 import { Level } from './level.entity';
-import { Expose } from 'class-transformer';
+import { LevelProgress } from './level-progress.entity';
 
 @Entity('stories')
 export class Story {
@@ -39,6 +42,12 @@ export class Story {
   })
   status: StoryStatus = StoryStatus.WAITING_NEWLY;
 
+  @OneToMany(
+    () => TestSession,
+    (testSession: TestSession) => testSession.student,
+  )
+  testSessions: TestSession[];
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -56,6 +65,15 @@ export class Story {
   @Expose()
   get passageSentences(): string[] {
     return Story.passageToSentences(this.passage);
+  }
+
+  @Expose()
+  public isCurrentStudentValidForStory(studentId: string): boolean {
+    return (
+      this.level?.levelProgresses?.some(
+        (lp: LevelProgress) => lp.student.id === studentId && lp.isUnlocked,
+      ) ?? false
+    );
   }
 
   public static passageToSentences(passage: string): string[] {
