@@ -11,6 +11,8 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../../utils/testing-database.utils';
+import { Level } from 'src/feature/levels/entities/level.entity';
+import { Story } from 'src/feature/levels/entities/story.entity';
 
 describe('Student Dashboard (e2e)', () => {
   let app: INestApplication<App>;
@@ -72,13 +74,26 @@ describe('Student Dashboard (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
 
-    randomUUIDV7.mockReset();
-    randomNumericCode.mockReset();
-
     const levelSeeder: LevelSeeder = new LevelSeeder(
       app.get<DataSource>(DataSource),
     );
     await levelSeeder.run();
+
+    randomUUIDV7.mockReturnValue('2');
+    await requestTestAgent
+      .post('/teachers/students')
+      .send({
+        studentUsername: 'student2',
+        studentFullName: 'Student Two',
+        parentEmail: 'parent2@gmail.com',
+        parentFullName: 'Parent Two',
+        jumpLevelTo: 1, // start at level 2
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    randomUUIDV7.mockReset();
+    randomNumericCode.mockReset();
   });
 
   afterAll(async () => {
@@ -242,5 +257,136 @@ describe('Student Dashboard (e2e)', () => {
 
   it('GET /students/levels | must reject if token is missing', async () => {
     await requestTestAgent.get('/students/levels').expect(401);
+  });
+
+  it('POST /students/test-sessions | must create a new TestSession if valid', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    const level3: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 3 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+    expect(level3).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body = response.body.data;
+    expect(body).toBeDefined();
+    expect(body.id).toBeDefined();
+    expect(body.levelFullName).toBe(level2!.fullName);
+    expect(body.story.id).toBe(level2!.stories[0].id);
+    expect(body.titleAtTaken).toBe(level2!.stories[0].title);
+    expect(body.imageAtTaken).toBe(level2!.stories[0].image);
+    expect(body.imageAtTakenUrl).toBe(
+      level2!.stories[0].image
+        ? `${process.env.APP_URL}${level2!.stories[0].image}`
+        : null,
+    );
+    expect(body.descriptionAtTaken).toBe(level2!.stories[0].description);
+    expect(body.passageAtTaken).toBe(level2!.stories[0].passage);
+    expect(body.passagesAtTaken).toStrictEqual(
+      Story.passageToSentences(level2!.stories[0].passage),
+    );
+    expect(body.finishedAt).toBeNull();
+    expect(body.medal).toBeNull();
+    expect(body.score).toBeNull();
+    expect(body.isCompleted).toBe(false);
+  });
+
+  it('POST /students/test-sessions | must reject if stories is in locked level', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    const level3: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 3 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+    expect(level3).not.toBeNull();
+
+    await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level3!.stories[0].id, // level 3 is locked
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  it('POST /students/test-sessions | must reject create a new TestSession if not authenticated ', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: 10,
+      })
+      .set('Authorization', `Bearer ${token}+invalid`)
+      .expect(401);
   });
 });
