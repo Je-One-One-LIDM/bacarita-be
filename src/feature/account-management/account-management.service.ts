@@ -151,6 +151,7 @@ export class AccountManagementService extends ITransactionalService {
               student_id: savedStudent.id,
               level_id: level.id,
               isUnlocked: true,
+              isSkipped: level.no <= maxLevelToUnlock ? true : false,
               isCompleted: level.no <= maxLevelToUnlock ? true : false,
             });
             levelProgress.level = level;
@@ -203,21 +204,18 @@ export class AccountManagementService extends ITransactionalService {
     IParentProfile[]
   > {
     const parents: Parent[] = await this.parentRepository.find({
-      relations: ['students'],
       order: {
         email: 'ASC',
       },
     });
 
-    const parentsProfile: IParentProfile[] = parents
-      .filter((parent) => parent.students && parent.students.length > 0)
-      .map(
-        (parent) =>
-          ({
-            email: parent.email,
-            fullName: parent.fullName,
-          }) as IParentProfile,
-      );
+    const parentsProfile: IParentProfile[] = parents.map(
+      (parent) =>
+        ({
+          email: parent.email,
+          fullName: parent.fullName,
+        }) as IParentProfile,
+    );
 
     return parentsProfile;
   }

@@ -399,12 +399,15 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
     expect(levelProgressInDb).toHaveLength(3);
     expect(levelProgressInDb[0]).toHaveProperty('level.no', 1);
     expect(levelProgressInDb[0]).toHaveProperty('isUnlocked', true);
+    expect(levelProgressInDb[0]).toHaveProperty('isSkipped', true);
     expect(levelProgressInDb[0]).toHaveProperty('isCompleted', true);
     expect(levelProgressInDb[1]).toHaveProperty('level.no', 2);
     expect(levelProgressInDb[1]).toHaveProperty('isUnlocked', true);
+    expect(levelProgressInDb[1]).toHaveProperty('isSkipped', true);
     expect(levelProgressInDb[1]).toHaveProperty('isCompleted', true);
     expect(levelProgressInDb[2]).toHaveProperty('level.no', 3);
     expect(levelProgressInDb[2]).toHaveProperty('isUnlocked', true);
+    expect(levelProgressInDb[2]).toHaveProperty('isSkipped', false);
     expect(levelProgressInDb[2]).toHaveProperty('isCompleted', false);
   });
 
@@ -532,6 +535,47 @@ describe('Teacher Register a Student and its Parent (e2e)', () => {
       })
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
+
+    const response = await requestTestAgent
+      .get('/teachers/students/parents-email')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const body = response.body.data;
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(2);
+    expect(body[0].email).toBe('aparent2@gmail.com');
+    expect(body[0].fullName).toBe('Parent Two Aparent');
+    expect(body[1].email).toBe('parent1@gmail.com');
+    expect(body[1].fullName).toBe('Parent One');
+  });
+
+  it('GET /teachers/students/parents-email | must return array of parent emails and fullnames sorted by email even the parent didnt have an child yet', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await dataSource.getRepository(Parent).save([
+      {
+        id: 'parent-0001',
+        username: 'aparent2',
+        email: 'parent1@gmail.com',
+        fullName: 'Parent One',
+        password: await bcrypt.hash('somepassword', 10),
+      },
+      {
+        id: 'parent-0002',
+        username: 'parent2',
+        email: 'aparent2@gmail.com',
+        fullName: 'Parent Two Aparent',
+        password: await bcrypt.hash('somepassword', 10),
+      },
+    ]);
 
     const response = await requestTestAgent
       .get('/teachers/students/parents-email')

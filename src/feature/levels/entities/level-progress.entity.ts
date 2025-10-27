@@ -62,6 +62,9 @@ export class LevelProgress {
   @Column({ type: 'boolean', default: false })
   isCompleted: boolean = false;
 
+  @Column({ type: 'boolean', default: false })
+  isSkipped: boolean = false;
+
   @Expose()
   get requiredPoints(): number {
     if (this.isCompleted) return 0;

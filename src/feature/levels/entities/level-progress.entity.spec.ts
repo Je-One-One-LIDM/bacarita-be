@@ -59,5 +59,21 @@ describe('Unit Test: LevelProgress Entity', () => {
     progress.isCompleted = true;
     expect(progress.progress).toBe(100);
     expect(progress.requiredPoints).toBe(0);
+    expect(progress.isSkipped).toBe(false);
+  });
+
+  it('must return 0 requiredPoints; 100 progress; and isSkipped true if skipped', () => {
+    const level = new Level();
+    level.stories = [
+      { status: StoryStatus.ACCEPTED } as Story,
+      { status: StoryStatus.ACCEPTED } as Story,
+    ]; // maxPoints = 6, target = 4.5 -> 5
+    const progress = new LevelProgress();
+    progress.level = level;
+    progress.isCompleted = true;
+    progress.isSkipped = true;
+    expect(progress.progress).toBe(100);
+    expect(progress.requiredPoints).toBe(0);
+    expect(progress.isSkipped).toBe(true);
   });
 });
