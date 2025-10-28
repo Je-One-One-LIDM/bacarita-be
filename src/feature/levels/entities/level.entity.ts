@@ -48,7 +48,7 @@ export class Level {
 
   @Expose()
   get maxPoints(): number {
-    const acceptedStories: Story[] = this.stories.filter(
+    const acceptedStories: Story[] = (this.stories ?? []).filter(
       (story: Story) => story.status === StoryStatus.ACCEPTED,
     );
     return (acceptedStories.length ?? 0) * 3;

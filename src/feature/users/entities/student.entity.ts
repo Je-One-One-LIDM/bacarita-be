@@ -1,5 +1,6 @@
 import { Exclude } from 'class-transformer';
 import { LevelProgress } from 'src/feature/levels/entities/level-progress.entity';
+import { TestSession } from 'src/feature/test-session/entities/test-session.entity';
 import {
   Column,
   CreateDateColumn,
@@ -39,6 +40,12 @@ export class Student {
   @ManyToOne(() => Parent, (parent: Parent) => parent.students)
   @JoinColumn({ name: 'parent_id' })
   parent: Parent;
+
+  @OneToMany(
+    () => TestSession,
+    (testSession: TestSession) => testSession.student,
+  )
+  testSessions: TestSession[];
 
   @OneToMany(
     () => LevelProgress,
