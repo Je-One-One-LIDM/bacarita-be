@@ -62,12 +62,10 @@ export class Story {
     return null;
   }
 
-  @Expose()
   get passageSentences(): string[] {
     return Story.passageToSentences(this.passage);
   }
 
-  @Expose()
   public isCurrentStudentValidForStory(studentId: string): boolean {
     return (
       this.level?.levelProgresses?.some(

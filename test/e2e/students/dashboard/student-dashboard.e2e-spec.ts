@@ -13,6 +13,7 @@ import createTestingApp from '../../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../../utils/testing-database.utils';
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
+import { TestSession } from 'src/feature/test-session/entities/test-session.entity';
 
 describe('Student Dashboard (e2e)', () => {
   let app: INestApplication<App>;
@@ -318,6 +319,8 @@ describe('Student Dashboard (e2e)', () => {
       Story.passageToSentences(level2!.stories[0].passage),
     );
     expect(body.finishedAt).toBeNull();
+    expect(body.remainingTimeInSeconds).toBeGreaterThan(7100);
+    expect(body.remainingTimeInSeconds).toBeLessThan(7202);
     expect(body.medal).toBeNull();
     expect(body.score).toBeNull();
     expect(body.isCompleted).toBe(false);
@@ -388,5 +391,198 @@ describe('Student Dashboard (e2e)', () => {
       })
       .set('Authorization', `Bearer ${token}+invalid`)
       .expect(401);
+  });
+
+  it('POST /students/test-sessions/:id/status | must return and handle a valid TestSession', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    const level3: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 3 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+    expect(level3).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body = response.body.data;
+    expect(body).toBeDefined();
+    expect(body.id).toBeDefined();
+    expect(body.levelFullName).toBe(level2!.fullName);
+    expect(body.story.id).toBe(level2!.stories[0].id);
+    expect(body.titleAtTaken).toBe(level2!.stories[0].title);
+    expect(body.imageAtTaken).toBe(level2!.stories[0].image);
+    expect(body.imageAtTakenUrl).toBe(
+      level2!.stories[0].image
+        ? `${process.env.APP_URL}${level2!.stories[0].image}`
+        : null,
+    );
+    expect(body.descriptionAtTaken).toBe(level2!.stories[0].description);
+    expect(body.passageAtTaken).toBe(level2!.stories[0].passage);
+    expect(body.passagesAtTaken).toStrictEqual(
+      Story.passageToSentences(level2!.stories[0].passage),
+    );
+    expect(body.finishedAt).toBeNull();
+    expect(body.remainingTimeInSeconds).toBeGreaterThan(7100);
+    expect(body.remainingTimeInSeconds).toBeLessThan(7202);
+    expect(body.medal).toBeNull();
+    expect(body.score).toBeNull();
+    expect(body.isCompleted).toBe(false);
+
+    const testSessionId = body.id;
+
+    const statusResponse = await requestTestAgent
+      .get(`/students/test-sessions/${testSessionId}/status`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const statusBody = statusResponse.body.data;
+    expect(statusBody).toBeDefined();
+    expect(statusBody.id).toBe(testSessionId);
+    expect(statusBody.levelFullName).toBe(level2!.fullName);
+    expect(statusBody.story.id).toBe(level2!.stories[0].id);
+    expect(statusBody.titleAtTaken).toBe(level2!.stories[0].title);
+    expect(statusBody.imageAtTaken).toBe(level2!.stories[0].image);
+    expect(statusBody.imageAtTakenUrl).toBe(
+      level2!.stories[0].image
+        ? `${process.env.APP_URL}${level2!.stories[0].image}`
+        : null,
+    );
+    expect(statusBody.descriptionAtTaken).toBe(level2!.stories[0].description);
+    expect(statusBody.passageAtTaken).toBe(level2!.stories[0].passage);
+    expect(statusBody.passagesAtTaken).toStrictEqual(
+      Story.passageToSentences(level2!.stories[0].passage),
+    );
+    expect(statusBody.finishedAt).toBeNull();
+    expect(statusBody.remainingTimeInSeconds).toBeGreaterThan(7000);
+    expect(statusBody.remainingTimeInSeconds).toBeLessThan(7205);
+    expect(statusBody.medal).toBeNull();
+    expect(statusBody.score).toBeNull();
+    expect(statusBody.isCompleted).toBe(false);
+  });
+
+  it('POST /students/test-sessions/:id/status || /students/test-sessions/:id | must return and handle a completed TestSession', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    const level3: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 3 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+    expect(level3).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const body = response.body.data;
+    const testSessionId = body.id;
+
+    await app
+      .get<DataSource>(DataSource)
+      .getRepository(TestSession)
+      .update(
+        { id: testSessionId },
+        {
+          startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // started 3 hours ago
+        },
+      );
+
+    await requestTestAgent
+      .get(`/students/test-sessions/${testSessionId}/status`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    const testSessionAfter: TestSession | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(TestSession)
+      .findOne({ where: { id: testSessionId } });
+    expect(testSessionAfter).not.toBeNull();
+    expect(testSessionAfter!.finishedAt).not.toBeNull();
+    expect(testSessionAfter!.remainingTimeInSeconds).toBe(0);
+
+    const testSessionResponseAfter = await requestTestAgent
+      .get(`/students/test-sessions/${testSessionId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const statusBody = testSessionResponseAfter.body.data;
+    expect(statusBody).toBeDefined();
+    expect(statusBody.id).toBe(testSessionId);
+    expect(statusBody.levelFullName).toBe(level2!.fullName);
+    expect(statusBody.story.id).toBe(level2!.stories[0].id);
+    expect(statusBody.titleAtTaken).toBe(level2!.stories[0].title);
+    expect(statusBody.imageAtTaken).toBe(level2!.stories[0].image);
+    expect(statusBody.imageAtTakenUrl).toBe(
+      level2!.stories[0].image
+        ? `${process.env.APP_URL}${level2!.stories[0].image}`
+        : null,
+    );
+    expect(statusBody.descriptionAtTaken).toBe(level2!.stories[0].description);
+    expect(statusBody.passageAtTaken).toBe(level2!.stories[0].passage);
+    expect(statusBody.passagesAtTaken).toStrictEqual(
+      Story.passageToSentences(level2!.stories[0].passage),
+    );
+    expect(statusBody.finishedAt).not.toBeNull();
+    expect(statusBody.remainingTimeInSeconds).toBe(0);
+    expect(statusBody.medal).toBeNull();
+    expect(statusBody.score).toBeNull();
+    expect(statusBody.isCompleted).toBe(true);
   });
 });

@@ -1,20 +1,22 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { DataResponse } from 'src/core/http/http-response';
 import { Auth } from '../auth/decorators/auth.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthRole } from '../auth/enums/auth.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { TestSessionService } from './test-session.service';
-import { StartNewTestSessionDTO } from './dtos/start-new-test-session.dto';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ICurrentUser } from '../auth/interfaces/current-user.interfaces';
-import { DataResponse } from 'src/core/http/http-response';
+import { StartNewTestSessionDTO } from './dtos/start-new-test-session.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
+import { TestSessionService } from './test-session.service';
 
 @Controller('students/test-sessions')
 export class StudentTestSessionController {
@@ -38,6 +40,50 @@ export class StudentTestSessionController {
       HttpStatus.CREATED,
       `Berhasil memulai sesi tes baru untuk murid ${currentUser.username}, cerita (story) ID ${newTestSession.storyId}, sesi tes ID ${newlyCreatedTestSession.id}`,
       newlyCreatedTestSession,
+    );
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.OK)
+  public async getTestSessionById(
+    @Param('id') testSessionId: string,
+    @CurrentUser()
+    currentUser: ICurrentUser,
+  ): Promise<DataResponse<TestSessionResponseDTO>> {
+    const testSession: TestSessionResponseDTO =
+      await this.testSessionService.getTestSessionByIdForStudent(
+        testSessionId,
+        currentUser.id,
+      );
+
+    return new DataResponse<TestSessionResponseDTO>(
+      HttpStatus.OK,
+      `Status test session dengan ID ${testSessionId} valid`,
+      testSession,
+    );
+  }
+
+  @Get(':id/status')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.OK)
+  public async getTestSessionStatus(
+    @Param('id') testSessionId: string,
+    @CurrentUser()
+    currentUser: ICurrentUser,
+  ): Promise<DataResponse<TestSessionResponseDTO>> {
+    const testSession: TestSessionResponseDTO =
+      await this.testSessionService.getTestSessionStatus(
+        testSessionId,
+        currentUser.id,
+      );
+
+    return new DataResponse<TestSessionResponseDTO>(
+      HttpStatus.OK,
+      `Status test session dengan ID ${testSessionId} valid`,
+      testSession,
     );
   }
 }

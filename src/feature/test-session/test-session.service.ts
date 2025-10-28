@@ -103,6 +103,7 @@ export class TestSessionService extends ITransactionalService {
           ),
           startedAt: savedTestSession.startedAt,
           finishedAt: savedTestSession.finishedAt,
+          remainingTimeInSeconds: savedTestSession.remainingTimeInSeconds,
           medal: savedTestSession.medal,
           score: savedTestSession.score,
           isCompleted: !!savedTestSession.finishedAt,
@@ -113,5 +114,117 @@ export class TestSessionService extends ITransactionalService {
         return testSessionDTO;
       },
     );
+  }
+
+  public async getTestSessionStatus(
+    testSessionId: string,
+    studentId: string,
+  ): Promise<TestSessionResponseDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+
+    if (testSession.remainingTimeInSeconds <= 0) {
+      testSession.finishedAt = new Date();
+      await this.testSessionRepository.save(testSession);
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+
+    const { level, ...storyWithoutLevel } = testSession.story!;
+    const testSessionDTO: TestSessionResponseDTO = {
+      id: testSession.id,
+      student: testSession.student,
+      story: storyWithoutLevel as Story,
+      levelFullName: level.fullName,
+      titleAtTaken: testSession.titleAtTaken,
+      imageAtTaken: testSession.imageAtTaken,
+      imageAtTakenUrl: testSession.imageAtTakenUrl,
+      descriptionAtTaken: testSession.descriptionAtTaken,
+      passageAtTaken: testSession.passageAtTaken,
+      passagesAtTaken: Story.passageToSentences(testSession.passageAtTaken),
+      startedAt: testSession.startedAt,
+      finishedAt: testSession.finishedAt,
+      remainingTimeInSeconds: testSession.remainingTimeInSeconds,
+      medal: testSession.medal,
+      score: testSession.score,
+      isCompleted: !!testSession.finishedAt,
+      createdAt: testSession.createdAt,
+      updatedAt: testSession.updatedAt,
+    };
+
+    return testSessionDTO;
+  }
+
+  public async getTestSessionByIdForStudent(
+    testSessionId: string,
+    studentId: string,
+  ): Promise<TestSessionResponseDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+
+    if (testSession.remainingTimeInSeconds <= 0) {
+      if (!testSession.finishedAt) {
+        testSession.finishedAt = new Date();
+        await this.testSessionRepository.save(testSession);
+      }
+    }
+
+    const { level, ...storyWithoutLevel } = testSession.story!;
+    const testSessionDTO: TestSessionResponseDTO = {
+      id: testSession.id,
+      student: testSession.student,
+      story: storyWithoutLevel as Story,
+      levelFullName: level.fullName,
+      titleAtTaken: testSession.titleAtTaken,
+      imageAtTaken: testSession.imageAtTaken,
+      imageAtTakenUrl: testSession.imageAtTakenUrl,
+      descriptionAtTaken: testSession.descriptionAtTaken,
+      passageAtTaken: testSession.passageAtTaken,
+      passagesAtTaken: Story.passageToSentences(testSession.passageAtTaken),
+      startedAt: testSession.startedAt,
+      finishedAt: testSession.finishedAt,
+      remainingTimeInSeconds: testSession.remainingTimeInSeconds,
+      medal: testSession.medal,
+      score: testSession.score,
+      isCompleted: !!testSession.finishedAt,
+      createdAt: testSession.createdAt,
+      updatedAt: testSession.updatedAt,
+    };
+
+    return testSessionDTO;
+  }
+
+  private async findAndAuthorizeTestSession(
+    testSessionId: string,
+    studentId: string,
+    {
+      relations = ['student', 'story', 'story.level'],
+      repository = this.testSessionRepository,
+    }: {
+      relations?: string[];
+      repository?: Repository<TestSession>;
+    } = {},
+  ): Promise<TestSession> {
+    const testSession = await repository.findOne({
+      where: { id: testSessionId, student: { id: studentId } },
+      relations: relations,
+    });
+    if (!testSession) {
+      throw new NotFoundException(
+        `Sesi tes dengan ID ${testSessionId} tidak ditemukan`,
+      );
+    }
+
+    return testSession;
   }
 }

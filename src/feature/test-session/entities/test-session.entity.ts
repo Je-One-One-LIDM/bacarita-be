@@ -69,4 +69,20 @@ export class TestSession {
     }
     return null;
   }
+
+  @Expose()
+  get remainingTimeInSeconds(): number {
+    const TEST_SESSION_TEST_DURATION_IN_SECONDS = 120 * 60;
+    if (this.startedAt && !this.finishedAt) {
+      const now = new Date();
+      const elapsedTimeInSeconds = Math.floor(
+        (now.getTime() - this.startedAt.getTime()) / 1000,
+      );
+      const remainingTime =
+        TEST_SESSION_TEST_DURATION_IN_SECONDS - elapsedTimeInSeconds;
+      return remainingTime > 0 ? remainingTime : 0;
+    }
+
+    return 0;
+  }
 }

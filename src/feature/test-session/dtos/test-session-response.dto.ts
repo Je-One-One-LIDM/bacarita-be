@@ -15,6 +15,7 @@ export class TestSessionResponseDTO {
   passagesAtTaken: string[];
   startedAt: Date;
   finishedAt?: Date | undefined | null;
+  remainingTimeInSeconds: number;
   medal?: StoryMedal | undefined | null;
   score: number;
   isCompleted?: boolean | undefined | null;
