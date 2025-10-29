@@ -7,9 +7,11 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { STTWordResult } from './stt-word-result.entity';
 
 @Entity('test_sessions')
 export class TestSession {
@@ -26,6 +28,12 @@ export class TestSession {
     nullable: true,
   })
   story?: Story;
+
+  @OneToMany(
+    () => STTWordResult,
+    (sttWordResult: STTWordResult) => sttWordResult.testSession,
+  )
+  sttWordResult: STTWordResult[];
 
   @Column()
   titleAtTaken: string;
