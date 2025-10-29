@@ -3,16 +3,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { ITransactionalService } from 'src/common/base-transaction/transactional.interface.service';
+import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OpenRouterService } from '../ai/open-router.service';
 import { Story } from '../levels/entities/story.entity';
 import { Student } from '../users/entities/student.entity';
 import { StudentService } from '../users/student/student.service';
-import { TestSession } from './entities/test-session.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
+import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
+import { STTWordResult } from './entities/stt-word-result.entity';
+import { TestSession } from './entities/test-session.entity';
 
 @Injectable()
 export class TestSessionService extends ITransactionalService {
@@ -21,10 +24,15 @@ export class TestSessionService extends ITransactionalService {
 
     private readonly logger: PinoLogger,
 
+    private readonly openRouterService: OpenRouterService,
+
     @InjectRepository(Story)
     private readonly storyRepository: Repository<Story>,
 
     private readonly studentService: StudentService,
+
+    @InjectRepository(STTWordResult)
+    private readonly sttWordResultRepository: Repository<STTWordResult>,
 
     @InjectRepository(TestSession)
     private readonly testSessionRepository: Repository<TestSession>,
@@ -202,6 +210,68 @@ export class TestSessionService extends ITransactionalService {
     };
 
     return testSessionDTO;
+  }
+
+  public async startSTTQuestionSession(
+    testSessionId: string,
+    studentId: string,
+  ): Promise<STTQuestionResponseDTO[]> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+    if (testSession.remainingTimeInSeconds <= 0) {
+      testSession.finishedAt = new Date();
+      await this.testSessionRepository.save(testSession);
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+
+    const sttWordResults: STTWordResult[] =
+      await this.sttWordResultRepository.find({
+        where: { testSession: { id: testSessionId } },
+      });
+
+    const questionsResponseDTO: STTQuestionResponseDTO[] = [];
+    if (sttWordResults.length > 0) {
+      throw new ForbiddenException(
+        `Sesi pertanyaan STT untuk sesi tes dengan ID ${testSessionId} sudah pernah dimulai`,
+      );
+    } else {
+      // Initialize STT Word Results for the Test Session
+      const questions: string[] =
+        await this.openRouterService.generateQuestionsFromStoryPassage(
+          testSession.passageAtTaken,
+        );
+      await this.withTransaction<void>(async (manager: EntityManager) => {
+        const sttWordResultRepo: Repository<STTWordResult> =
+          manager.getRepository(STTWordResult);
+
+        for (const question of questions) {
+          const sttWordResult: STTWordResult = sttWordResultRepo.create({
+            id: 'STTWORDRESULT-' + this.tokenGeneratorService.randomUUIDV7(),
+            testSession: { id: testSessionId } as TestSession,
+            expectedWord: question,
+          });
+          await sttWordResultRepo.save(sttWordResult);
+          questionsResponseDTO.push({
+            id: sttWordResult.id,
+            instruction: sttWordResult.instruction,
+            expectedWord: sttWordResult.expectedWord,
+            createdAt: sttWordResult.createdAt,
+            updatedAt: sttWordResult.updatedAt,
+          });
+        }
+      });
+    }
+
+    return questionsResponseDTO;
   }
 
   private async findAndAuthorizeTestSession(

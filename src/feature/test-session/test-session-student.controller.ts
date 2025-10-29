@@ -17,6 +17,7 @@ import { ICurrentUser } from '../auth/interfaces/current-user.interfaces';
 import { StartNewTestSessionDTO } from './dtos/start-new-test-session.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
 import { TestSessionService } from './test-session.service';
+import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 
 @Controller('students/test-sessions')
 export class StudentTestSessionController {
@@ -84,6 +85,28 @@ export class StudentTestSessionController {
       HttpStatus.OK,
       `Status test session dengan ID ${testSessionId} valid`,
       testSession,
+    );
+  }
+
+  @Post(':id/stt-questions')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.CREATED)
+  public async startSTTQuestionSession(
+    @Param('id') testSessionId: string,
+    @CurrentUser()
+    currentUser: ICurrentUser,
+  ): Promise<DataResponse<STTQuestionResponseDTO[]>> {
+    const sttQuestions: STTQuestionResponseDTO[] =
+      await this.testSessionService.startSTTQuestionSession(
+        testSessionId,
+        currentUser.id,
+      );
+
+    return new DataResponse<STTQuestionResponseDTO[]>(
+      HttpStatus.CREATED,
+      `Sesi pertanyaan STT untuk sesi tes dengan ID ${testSessionId} berhasil dimulai`,
+      sttQuestions,
     );
   }
 }

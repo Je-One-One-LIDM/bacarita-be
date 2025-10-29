@@ -7,6 +7,7 @@ import { LevelProgress } from '../levels/entities/level-progress.entity';
 import { Level } from '../levels/entities/level.entity';
 import { Story } from '../levels/entities/story.entity';
 import { StudentModule } from '../users/student/student.module';
+import { STTWordResult } from './entities/stt-word-result.entity';
 import { TestSession } from './entities/test-session.entity';
 import { StudentTestSessionController } from './test-session-student.controller';
 import { TestSessionService } from './test-session.service';
@@ -17,7 +18,13 @@ import { TestSessionService } from './test-session.service';
 
     AuthModule,
 
-    TypeOrmModule.forFeature([TestSession, Level, LevelProgress, Story]),
+    TypeOrmModule.forFeature([
+      TestSession,
+      Level,
+      LevelProgress,
+      Story,
+      STTWordResult,
+    ]),
 
     StudentModule,
 
