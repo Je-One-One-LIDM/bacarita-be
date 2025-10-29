@@ -9,4 +9,8 @@ export default registerAs('app', () => ({
     secret: process.env.JWT_SECRET,
     expires: process.env.JWT_EXPIRES,
   },
+  ai: {
+    openRouterApiKey: process.env.OPENROUTER_API_KEY,
+    openRouterBaseUrl: process.env.OPENROUTER_BASE_URL,
+  },
 }));

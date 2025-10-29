@@ -32,4 +32,7 @@ export default Joi.object({
   MAIL_FROM_EMAIL: Joi.string().email().required(),
 
   TYPEORM_LOGGING: Joi.boolean().default(false),
+
+  OPENROUTER_API_KEY: Joi.string().required(),
+  OPENROUTER_BASE_URL: Joi.string().uri().required(),
 });

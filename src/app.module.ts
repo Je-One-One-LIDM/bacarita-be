@@ -15,6 +15,7 @@ import { AuthModule } from './feature/auth/auth.module';
 import { LevelsModule } from './feature/levels/levels.module';
 import { UsersModule } from './feature/users/users.module';
 import { TestSessionModule } from './feature/test-session/test-session.module';
+import { AiModule } from './feature/ai/ai.module';
 
 const env: string = process.env.NODE_ENV || 'development';
 
@@ -52,6 +53,8 @@ const env: string = process.env.NODE_ENV || 'development';
     LevelsModule,
 
     TestSessionModule,
+
+    AiModule,
   ],
 })
 export class AppModule {}
