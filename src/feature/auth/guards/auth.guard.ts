@@ -49,7 +49,7 @@ export class AuthGuard implements CanActivate {
       if (requiredRoles.includes(AuthRole.ANY)) return true;
 
       // Check role from JWT payload
-      if (!requiredRoles.includes(user.role as AuthRole)) {
+      if (!requiredRoles.includes(user.role)) {
         throw new ForbiddenException();
       }
     }

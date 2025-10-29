@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TokenGeneratorModule } from 'src/common/token-generator/token-generator.module';
+import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
 import { LevelProgress } from '../levels/entities/level-progress.entity';
 import { Level } from '../levels/entities/level.entity';
@@ -12,6 +13,8 @@ import { TestSessionService } from './test-session.service';
 
 @Module({
   imports: [
+    AiModule,
+
     AuthModule,
 
     TypeOrmModule.forFeature([TestSession, Level, LevelProgress, Story]),
