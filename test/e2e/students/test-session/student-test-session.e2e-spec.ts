@@ -1213,7 +1213,6 @@ describe('Student Test Session (e2e)', () => {
       .expect(200);
 
     const levelsAfter = levelsResponseAfter.body.data;
-    console.log('Levels after completing tests:', levelsAfter);
 
     const level1After = levelsAfter.find((l: any) => l.no === 1);
 
