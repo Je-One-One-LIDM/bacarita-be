@@ -10,6 +10,7 @@ import {
 import { LevelProgress } from './entities/level-progress.entity';
 import { Level } from './entities/level.entity';
 import { Story } from './entities/story.entity';
+import { StoryMedal } from './enum/story-medal.enum';
 import { StoryStatus } from './enum/story-status.enum';
 
 @Injectable()
@@ -51,7 +52,12 @@ export class LevelsService extends ITransactionalService {
 
         const level: Level | null = await levelRepo.findOne({
           where: { id: levelId },
-          relations: ['stories', 'levelProgresses'],
+          relations: [
+            'stories',
+            'stories.testSessions',
+            'stories.testSessions.student',
+            'levelProgresses',
+          ],
           order: { no: 'ASC' },
         });
         if (!level) {
@@ -109,9 +115,12 @@ export class LevelsService extends ITransactionalService {
                 title: story.title,
                 description: story.description,
                 imageUrl: story.imageUrl,
-                isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-                isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-                isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+                isGoldMedal:
+                  story.getHighestMedal(studentId) === StoryMedal.GOLD,
+                isSilverMedal:
+                  story.getHighestMedal(studentId) === StoryMedal.SILVER,
+                isBronzeMedal:
+                  story.getHighestMedal(studentId) === StoryMedal.BRONZE,
                 createdAt: story.createdAt,
                 updatedAt: story.updatedAt,
               };
@@ -134,7 +143,12 @@ export class LevelsService extends ITransactionalService {
           manager.getRepository(LevelProgress);
 
         const levels = await levelRepo.find({
-          relations: ['stories', 'levelProgresses'],
+          relations: [
+            'stories',
+            'stories.testSessions',
+            'stories.testSessions.student',
+            'levelProgresses',
+          ],
           order: { no: 'ASC' },
         });
 
@@ -144,7 +158,12 @@ export class LevelsService extends ITransactionalService {
         >();
         const progresses: LevelProgress[] = await levelProgressRepo.find({
           where: { student_id: studentId },
-          relations: ['level', 'level.stories'],
+          relations: [
+            'level',
+            'level.stories',
+            'level.stories.testSessions',
+            'level.stories.testSessions.student',
+          ],
         });
 
         for (const p of progresses) progressMap.set(p.level_id, p);
@@ -197,9 +216,12 @@ export class LevelsService extends ITransactionalService {
                   title: story.title,
                   description: story.description,
                   imageUrl: story.imageUrl,
-                  isGoldMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-                  isSilverMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
-                  isBronzeMedal: false, // TODO: medal logic get the highest medal of TestSessions that belongs to this story and student
+                  isGoldMedal:
+                    story.getHighestMedal(studentId) === StoryMedal.GOLD,
+                  isSilverMedal:
+                    story.getHighestMedal(studentId) === StoryMedal.SILVER,
+                  isBronzeMedal:
+                    story.getHighestMedal(studentId) === StoryMedal.BRONZE,
                   createdAt: story.createdAt,
                   updatedAt: story.updatedAt,
                 };

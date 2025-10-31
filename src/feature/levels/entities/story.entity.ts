@@ -13,6 +13,7 @@ import {
 import { StoryStatus } from '../enum/story-status.enum';
 import { Level } from './level.entity';
 import { LevelProgress } from './level-progress.entity';
+import { StoryMedal } from '../enum/story-medal.enum';
 
 @Entity('stories')
 export class Story {
@@ -42,10 +43,7 @@ export class Story {
   })
   status: StoryStatus = StoryStatus.WAITING_NEWLY;
 
-  @OneToMany(
-    () => TestSession,
-    (testSession: TestSession) => testSession.student,
-  )
+  @OneToMany(() => TestSession, (testSession: TestSession) => testSession.story)
   testSessions: TestSession[];
 
   @CreateDateColumn()
@@ -64,6 +62,45 @@ export class Story {
 
   get passageSentences(): string[] {
     return Story.passageToSentences(this.passage);
+  }
+
+  public getHighestMedal(studentId: string): StoryMedal | null {
+    if (!this.testSessions || this.testSessions.length === 0) {
+      return null;
+    }
+
+    const studentTestSessions = this.testSessions.filter(
+      (ts) => ts.student?.id === studentId,
+    );
+
+    if (studentTestSessions.length === 0) {
+      return null;
+    }
+
+    let hasGold = false;
+    let hasSilver = false;
+    let hasBronze = false;
+
+    for (const session of studentTestSessions) {
+      if (session.medal === StoryMedal.GOLD) {
+        hasGold = true;
+        break; // Gold is the highest, no need to continue
+      } else if (session.medal === StoryMedal.SILVER) {
+        hasSilver = true;
+      } else if (session.medal === StoryMedal.BRONZE) {
+        hasBronze = true;
+      }
+    }
+
+    if (hasGold) {
+      return StoryMedal.GOLD;
+    } else if (hasSilver) {
+      return StoryMedal.SILVER;
+    } else if (hasBronze) {
+      return StoryMedal.BRONZE;
+    }
+
+    return null;
   }
 
   public isCurrentStudentValidForStory(studentId: string): boolean {

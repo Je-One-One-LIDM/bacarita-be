@@ -16,6 +16,8 @@ import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
 import { STTWordResult } from './entities/stt-word-result.entity';
 import { TestSession } from './entities/test-session.entity';
+import { LevelProgress } from '../levels/entities/level-progress.entity';
+import { StoryMedal } from '../levels/enum/story-medal.enum';
 
 @Injectable()
 export class TestSessionService extends ITransactionalService {
@@ -295,9 +297,37 @@ export class TestSessionService extends ITransactionalService {
 
     testSession.score = testSession.calculateScore(sttWordResults);
     testSession.medal = testSession.determineMedal();
-    // TODO: update level progress medal count after this test session
     testSession.finishedAt = new Date();
-    await this.testSessionRepository.save(testSession);
+    // Update Level Progress medal count based on the medal achieved in this Test Session
+    const levelProgress: LevelProgress | undefined =
+      testSession.story?.level.levelProgresses.find(
+        (lp) =>
+          lp.level_id === testSession.story?.level.id &&
+          lp.student_id === studentId,
+      );
+    if (levelProgress) {
+      if (testSession.medal === StoryMedal.GOLD) {
+        levelProgress.goldCount += 1;
+      } else if (testSession.medal === StoryMedal.SILVER) {
+        levelProgress.silverCount += 1;
+      } else if (testSession.medal === StoryMedal.BRONZE) {
+        levelProgress.bronzeCount += 1;
+      }
+
+      if (levelProgress.isCompleted === false) {
+        if (levelProgress.requiredPoints <= 0) {
+          levelProgress.isCompleted = true;
+        }
+      }
+      await this.withTransaction<void>(async (manager: EntityManager) => {
+        const levelProgressRepo: Repository<LevelProgress> =
+          manager.getRepository(LevelProgress);
+        const testSessionRepo: Repository<TestSession> =
+          manager.getRepository(TestSession);
+        await levelProgressRepo.save(levelProgress);
+        await testSessionRepo.save(testSession);
+      });
+    }
 
     const { level, ...storyWithoutLevel } = testSession.story!;
     const testSessionDTO: TestSessionResponseDTO = {
@@ -328,7 +358,14 @@ export class TestSessionService extends ITransactionalService {
     testSessionId: string,
     studentId: string,
     {
-      relations = ['student', 'story', 'story.level'],
+      relations = [
+        'level',
+        'level.story',
+        'student',
+        'story',
+        'story.level',
+        'story.level.levelProgresses',
+      ],
       repository = this.testSessionRepository,
     }: {
       relations?: string[];
