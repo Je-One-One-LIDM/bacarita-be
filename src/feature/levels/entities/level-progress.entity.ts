@@ -35,12 +35,10 @@ export class LevelProgress {
   @Column({ type: 'boolean', default: false })
   isUnlocked: boolean = false;
 
-  @Expose()
   get currentPoints(): number {
     return this.calculateCurrentPoints();
   }
 
-  @Expose()
   get progress(): number {
     if (this.isCompleted) return 100;
 
@@ -65,7 +63,6 @@ export class LevelProgress {
   @Column({ type: 'boolean', default: false })
   isSkipped: boolean = false;
 
-  @Expose()
   get requiredPoints(): number {
     if (this.isCompleted) return 0;
 
