@@ -7,18 +7,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { ITransactionalService } from 'src/common/base-transaction/transactional.interface.service';
 import { TokenGeneratorService } from 'src/common/token-generator/token-generator.service';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, IsNull, Not, Repository } from 'typeorm';
 import { OpenRouterService } from '../ai/open-router.service';
+import { LevelProgress } from '../levels/entities/level-progress.entity';
+import { Level } from '../levels/entities/level.entity';
 import { Story } from '../levels/entities/story.entity';
+import { StoryMedal } from '../levels/enum/story-medal.enum';
 import { Student } from '../users/entities/student.entity';
 import { StudentService } from '../users/student/student.service';
 import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
 import { STTWordResult } from './entities/stt-word-result.entity';
 import { TestSession } from './entities/test-session.entity';
-import { LevelProgress } from '../levels/entities/level-progress.entity';
-import { StoryMedal } from '../levels/enum/story-medal.enum';
-import { Level } from '../levels/entities/level.entity';
 
 @Injectable()
 export class TestSessionService extends ITransactionalService {
@@ -310,12 +310,61 @@ export class TestSessionService extends ITransactionalService {
           lp.student_id === studentId,
       );
     if (levelProgress) {
-      if (testSession.medal === StoryMedal.GOLD) {
-        levelProgress.goldCount += 1;
-      } else if (testSession.medal === StoryMedal.SILVER) {
-        levelProgress.silverCount += 1;
-      } else if (testSession.medal === StoryMedal.BRONZE) {
-        levelProgress.bronzeCount += 1;
+      // Check if student has previously completed this story (exclude current session)
+      const previousTestSession: TestSession | null =
+        await this.testSessionRepository.findOne({
+          where: {
+            student: { id: studentId },
+            story: { id: testSession.story?.id },
+            finishedAt: Not(IsNull()),
+            id: Not(testSessionId),
+          },
+          order: { finishedAt: 'DESC' },
+        });
+
+      // Only update medal count if new medal is higher than previous
+      if (previousTestSession && previousTestSession.medal) {
+        const previousMedalValue: number = this.getMedalValue(
+          previousTestSession.medal,
+        );
+        const newMedalValue: number = this.getMedalValue(testSession.medal);
+
+        // If new medal is higher, remove old medal and add new one
+        if (newMedalValue > previousMedalValue) {
+          // Remove previous medal count
+          if (previousTestSession.medal === StoryMedal.GOLD) {
+            levelProgress.goldCount = Math.max(0, levelProgress.goldCount - 1);
+          } else if (previousTestSession.medal === StoryMedal.SILVER) {
+            levelProgress.silverCount = Math.max(
+              0,
+              levelProgress.silverCount - 1,
+            );
+          } else if (previousTestSession.medal === StoryMedal.BRONZE) {
+            levelProgress.bronzeCount = Math.max(
+              0,
+              levelProgress.bronzeCount - 1,
+            );
+          }
+
+          // Add new medal count
+          if (testSession.medal === StoryMedal.GOLD) {
+            levelProgress.goldCount += 1;
+          } else if (testSession.medal === StoryMedal.SILVER) {
+            levelProgress.silverCount += 1;
+          } else if (testSession.medal === StoryMedal.BRONZE) {
+            levelProgress.bronzeCount += 1;
+          }
+        }
+        // If new medal is lower or equal, don't update anything
+      } else {
+        // No previous session, add the new medal
+        if (testSession.medal === StoryMedal.GOLD) {
+          levelProgress.goldCount += 1;
+        } else if (testSession.medal === StoryMedal.SILVER) {
+          levelProgress.silverCount += 1;
+        } else if (testSession.medal === StoryMedal.BRONZE) {
+          levelProgress.bronzeCount += 1;
+        }
       }
 
       await this.withTransaction<void>(async (manager: EntityManager) => {
@@ -328,10 +377,23 @@ export class TestSessionService extends ITransactionalService {
         await levelProgressRepo.save(levelProgress);
         await testSessionRepo.save(testSession);
 
+        // Reload level progress with relations to get accurate requiredPoints calculation
+        const reloadedLevelProgress: LevelProgress | null =
+          await levelProgressRepo.findOne({
+            where: {
+              student_id: studentId,
+              level_id: levelProgress.level_id,
+            },
+            relations: ['level', 'level.stories'],
+          });
         // Unlock next level
-        if (levelProgress.requiredPoints <= 0 && !levelProgress.isCompleted) {
-          levelProgress.isCompleted = true;
-          await levelProgressRepo.save(levelProgress);
+        if (
+          reloadedLevelProgress &&
+          reloadedLevelProgress.requiredPoints <= 0 &&
+          !reloadedLevelProgress.isCompleted
+        ) {
+          reloadedLevelProgress.isCompleted = true;
+          await levelProgressRepo.save(reloadedLevelProgress);
 
           // Find and unlock the next level
           const currentLevelNo = testSession.story?.level.no;
@@ -392,6 +454,20 @@ export class TestSessionService extends ITransactionalService {
     };
 
     return testSessionDTO;
+  }
+
+  private getMedalValue(medal: StoryMedal | null): number {
+    if (!medal) return 0;
+    switch (medal) {
+      case StoryMedal.GOLD:
+        return 3;
+      case StoryMedal.SILVER:
+        return 2;
+      case StoryMedal.BRONZE:
+        return 1;
+      default:
+        return 0;
+    }
   }
 
   private async findAndAuthorizeTestSession(
