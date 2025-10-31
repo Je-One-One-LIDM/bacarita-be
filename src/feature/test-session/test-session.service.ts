@@ -290,9 +290,12 @@ export class TestSessionService extends ITransactionalService {
     const sttWordResults: STTWordResult[] =
       await this.sttWordResultRepository.find({
         where: { testSession: { id: testSessionId } },
+        relations: ['testSession'],
       });
 
-    // TODO: Calculate score and medal based on sttWordResults and distractedEyeEvents
+    testSession.score = testSession.calculateScore(sttWordResults);
+    testSession.medal = testSession.determineMedal();
+    // TODO: update level progress medal count after this test session
     testSession.finishedAt = new Date();
     await this.testSessionRepository.save(testSession);
 
