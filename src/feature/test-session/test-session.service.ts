@@ -274,6 +274,53 @@ export class TestSessionService extends ITransactionalService {
     return questionsResponseDTO;
   }
 
+  public async finishTestSession(
+    testSessionId: string,
+    studentId: string,
+  ): Promise<TestSessionResponseDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Sesi tes dengan ID ${testSessionId} sudah selesai`,
+      );
+    }
+    const sttWordResults: STTWordResult[] =
+      await this.sttWordResultRepository.find({
+        where: { testSession: { id: testSessionId } },
+      });
+
+    // TODO: Calculate score and medal based on sttWordResults and distractedEyeEvents
+    testSession.finishedAt = new Date();
+    await this.testSessionRepository.save(testSession);
+
+    const { level, ...storyWithoutLevel } = testSession.story!;
+    const testSessionDTO: TestSessionResponseDTO = {
+      id: testSession.id,
+      student: testSession.student,
+      story: storyWithoutLevel as Story,
+      levelFullName: level.fullName,
+      titleAtTaken: testSession.titleAtTaken,
+      imageAtTaken: testSession.imageAtTaken,
+      imageAtTakenUrl: testSession.imageAtTakenUrl,
+      descriptionAtTaken: testSession.descriptionAtTaken,
+      passageAtTaken: testSession.passageAtTaken,
+      passagesAtTaken: Story.passageToSentences(testSession.passageAtTaken),
+      startedAt: testSession.startedAt,
+      finishedAt: testSession.finishedAt,
+      remainingTimeInSeconds: testSession.remainingTimeInSeconds,
+      medal: testSession.medal,
+      score: testSession.score,
+      isCompleted: !!testSession.finishedAt,
+      createdAt: testSession.createdAt,
+      updatedAt: testSession.updatedAt,
+    };
+
+    return testSessionDTO;
+  }
+
   private async findAndAuthorizeTestSession(
     testSessionId: string,
     studentId: string,
