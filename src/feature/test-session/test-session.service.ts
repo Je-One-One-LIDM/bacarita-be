@@ -18,6 +18,7 @@ import { STTWordResult } from './entities/stt-word-result.entity';
 import { TestSession } from './entities/test-session.entity';
 import { LevelProgress } from '../levels/entities/level-progress.entity';
 import { StoryMedal } from '../levels/enum/story-medal.enum';
+import { Level } from '../levels/entities/level.entity';
 
 @Injectable()
 export class TestSessionService extends ITransactionalService {
@@ -27,6 +28,9 @@ export class TestSessionService extends ITransactionalService {
     private readonly logger: PinoLogger,
 
     private readonly openRouterService: OpenRouterService,
+
+    @InjectRepository(Level)
+    private readonly levelRepository: Repository<Level>,
 
     @InjectRepository(Story)
     private readonly storyRepository: Repository<Story>,
@@ -314,18 +318,54 @@ export class TestSessionService extends ITransactionalService {
         levelProgress.bronzeCount += 1;
       }
 
-      if (levelProgress.isCompleted === false) {
-        if (levelProgress.requiredPoints <= 0) {
-          levelProgress.isCompleted = true;
-        }
-      }
       await this.withTransaction<void>(async (manager: EntityManager) => {
         const levelProgressRepo: Repository<LevelProgress> =
           manager.getRepository(LevelProgress);
         const testSessionRepo: Repository<TestSession> =
           manager.getRepository(TestSession);
+        const levelRepo: Repository<Level> = manager.getRepository(Level);
+
         await levelProgressRepo.save(levelProgress);
         await testSessionRepo.save(testSession);
+
+        // Unlock next level
+        if (levelProgress.requiredPoints <= 0 && !levelProgress.isCompleted) {
+          levelProgress.isCompleted = true;
+          await levelProgressRepo.save(levelProgress);
+
+          // Find and unlock the next level
+          const currentLevelNo = testSession.story?.level.no;
+          if (currentLevelNo) {
+            const nextLevel: Level | null = await levelRepo.findOne({
+              where: { no: currentLevelNo + 1 },
+            });
+
+            if (nextLevel) {
+              // Check if next level progress exists
+              let nextLevelProgress: LevelProgress | null =
+                await levelProgressRepo.findOne({
+                  where: {
+                    student_id: studentId,
+                    level_id: nextLevel.id,
+                  },
+                });
+
+              if (!nextLevelProgress) {
+                // Create new progress for next level
+                nextLevelProgress = levelProgressRepo.create({
+                  student_id: studentId,
+                  level_id: nextLevel.id,
+                  isUnlocked: true,
+                });
+              } else {
+                // Update existing progress
+                nextLevelProgress.isUnlocked = true;
+              }
+
+              await levelProgressRepo.save(nextLevelProgress);
+            }
+          }
+        }
       });
     }
 
@@ -359,12 +399,11 @@ export class TestSessionService extends ITransactionalService {
     studentId: string,
     {
       relations = [
-        'level',
-        'level.story',
         'student',
         'story',
         'story.level',
         'story.level.levelProgresses',
+        'story.level.levelProgresses.level',
       ],
       repository = this.testSessionRepository,
     }: {

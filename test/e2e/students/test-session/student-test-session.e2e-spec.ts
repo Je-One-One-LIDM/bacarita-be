@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication } from '@nestjs/common';
@@ -14,6 +17,7 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../../utils/testing-database.utils';
+import { STTWordResult } from 'src/feature/test-session/entities/stt-word-result.entity';
 
 describe('Student Test Session (e2e)', () => {
   let app: INestApplication<App>;
@@ -110,8 +114,8 @@ describe('Student Test Session (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
 
-    randomUUIDV7.mockReset();
-    randomNumericCode.mockReset();
+    randomUUIDV7.mockClear();
+    randomNumericCode.mockClear();
   });
 
   afterAll(async () => {
@@ -1128,5 +1132,94 @@ describe('Student Test Session (e2e)', () => {
       .post(`/students/test-sessions/${testSessionId}/finish`)
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(403);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must unlock next level when current level is completed', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    const levelsResponse = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const levels = levelsResponse.body.data;
+    const level1 = levels.find((l: any) => l.no === 1);
+    const level2 = levels.find((l: any) => l.no === 2);
+
+    expect(level1.isUnlocked).toBe(true);
+    expect(level2.isUnlocked).toBe(false); // Level 2 should be locked initially
+
+    // Get all stories from level 1
+    const level1Stories = level1.stories;
+
+    // Complete enough test sessions to unlock level 2
+    // We need to get 5 medals (requiredPoints for level 1)
+    for (let i = 0; i < Math.min(level1Stories.length, 5); i++) {
+      const story = level1Stories[i];
+
+      // Create test session
+      const testSessionResponse = await requestTestAgent
+        .post(`/students/test-sessions`)
+        .send({
+          storyId: story.id,
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(201);
+
+      const testSessionId = testSessionResponse.body.data.id;
+      // Start STT questions (to simulate completing the test)
+      await requestTestAgent
+        .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(201);
+
+      // Manually set some accuracy for STT results to ensure we get a medal
+      const sttResults = await app
+        .get<DataSource>(DataSource)
+        .getRepository(STTWordResult)
+        .find({
+          where: { testSession: { id: testSessionId } },
+        });
+
+      for (const result of sttResults as any[]) {
+        await app
+          .get<DataSource>(DataSource)
+          .getRepository(STTWordResult)
+
+          .update(result.id, { accuracy: 100 }); // Set accuracy to 80% to get gold medal
+      }
+
+      // Finish test session
+      await requestTestAgent
+        .post(`/students/test-sessions/${testSessionId}/finish`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+    }
+
+    // Check levels again - level 2 should now be unlocked
+    const levelsResponseAfter = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const levelsAfter = levelsResponseAfter.body.data;
+    console.log('Levels after completing tests:', levelsAfter);
+
+    const level1After = levelsAfter.find((l: any) => l.no === 1);
+
+    const level2After = levelsAfter.find((l: any) => l.no === 2);
+
+    expect(level1After.isCompleted).toBe(true); // Level 1 should be completed
+    expect(level2After.isUnlocked).toBe(true); // Level 2 should be unlocked
   });
 });
