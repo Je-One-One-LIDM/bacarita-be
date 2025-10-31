@@ -46,7 +46,6 @@ export class Level {
   )
   levelProgresses: LevelProgress[];
 
-  @Expose()
   get maxPoints(): number {
     const acceptedStories: Story[] = (this.stories ?? []).filter(
       (story: Story) => story.status === StoryStatus.ACCEPTED,

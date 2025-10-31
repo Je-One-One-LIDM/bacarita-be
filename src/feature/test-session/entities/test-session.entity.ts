@@ -93,4 +93,31 @@ export class TestSession {
 
     return 0;
   }
+
+  public calculateScore(sttWordResults: STTWordResult[]): number {
+    let score: number = 0;
+    let avgScore: number = 0;
+    if (sttWordResults.length === 0) {
+      return score;
+    }
+
+    for (const result of sttWordResults) {
+      if (result.testSession.id === this.id) {
+        score += result.accuracy ?? 0;
+      }
+    }
+
+    avgScore = score / sttWordResults.length;
+    return avgScore;
+  }
+
+  public determineMedal(): StoryMedal {
+    if (this.score >= 75) {
+      return StoryMedal.GOLD;
+    } else if (this.score >= 50) {
+      return StoryMedal.SILVER;
+    } else {
+      return StoryMedal.BRONZE;
+    }
+  }
 }

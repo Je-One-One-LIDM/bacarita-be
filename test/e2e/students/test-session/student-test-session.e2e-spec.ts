@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication } from '@nestjs/common';
@@ -14,6 +17,7 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../../utils/testing-database.utils';
+import { STTWordResult } from 'src/feature/test-session/entities/stt-word-result.entity';
 
 describe('Student Test Session (e2e)', () => {
   let app: INestApplication<App>;
@@ -110,8 +114,8 @@ describe('Student Test Session (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
 
-    randomUUIDV7.mockReset();
-    randomNumericCode.mockReset();
+    randomUUIDV7.mockClear();
+    randomNumericCode.mockClear();
   });
 
   afterAll(async () => {
@@ -809,5 +813,672 @@ describe('Student Test Session (e2e)', () => {
       .post(`/students/test-sessions/${testSessionId}/stt-questions`)
       .set('Authorization', `Bearer ${student1Token}`)
       .expect(404);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must successfully finish a valid test session', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    const finishResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const finishedSession = finishResponse.body.data;
+    expect(finishedSession).toBeDefined();
+    expect(finishedSession.id).toBe(testSessionId);
+    expect(finishedSession.finishedAt).not.toBeNull();
+    expect(finishedSession.isCompleted).toBe(true);
+    expect(finishedSession.levelFullName).toBe(level2!.fullName);
+    expect(finishedSession.story.id).toBe(level2!.stories[0].id);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must reject if test session is already finished', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Finish the test session once
+    await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Try to finish again - should fail
+    await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must reject if test session not found', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    await requestTestAgent
+      .post(`/students/test-sessions/TESTSESSION-nonexistent/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must reject if not authenticated', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(401);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must reject if student tries to finish another student test session', async () => {
+    // Student 2 creates a test session
+    const student2SignInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const student2Token = student2SignInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Student 1 tries to finish Student 2's test session
+    const student1SignInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const student1Token = student1SignInResponse.body.data.token;
+
+    // Should be rejected (404 since it doesn't belong to student1)
+    await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${student1Token}`)
+      .expect(404);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must finish test session even if time has expired', async () => {
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Mark the test session as started 3 hours ago (time expired)
+    await app
+      .get<DataSource>(DataSource)
+      .getRepository(TestSession)
+      .update(
+        { id: testSessionId },
+        {
+          startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // started 3 hours ago
+        },
+      );
+
+    // Should still be able to finish
+    const finishResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const finishedSession = finishResponse.body.data;
+    expect(finishedSession).toBeDefined();
+    expect(finishedSession.id).toBe(testSessionId);
+    expect(finishedSession.finishedAt).not.toBeNull();
+    expect(finishedSession.isCompleted).toBe(true);
+    expect(finishedSession.remainingTimeInSeconds).toBe(0);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must reject if user is not a student', async () => {
+    // Create a test session first with student2
+    const student2SignInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const student2Token = student2SignInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Teacher tries to finish the test session
+    const teacherSignInResponse = await requestTestAgent
+      .post('/auth/teachers/login')
+      .send({
+        email: 'teacher1@gmail.com',
+        password: 'teacher1password',
+      })
+      .expect(200);
+    const teacherToken = teacherSignInResponse.body.data.token;
+
+    await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(403);
+  });
+
+  it('POST /students/test-sessions/:id/finish | must unlock next level when current level is completed', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    const levelsResponse = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const levels = levelsResponse.body.data;
+    const level1 = levels.find((l: any) => l.no === 1);
+    const level2 = levels.find((l: any) => l.no === 2);
+
+    expect(level1.isUnlocked).toBe(true);
+    expect(level2.isUnlocked).toBe(false); // Level 2 should be locked initially
+
+    // Get all stories from level 1
+    const level1Stories = level1.stories;
+
+    // Complete enough test sessions to unlock level 2
+    // We need to get 5 medals (requiredPoints for level 1)
+    for (let i = 0; i < Math.min(level1Stories.length, 5); i++) {
+      const story = level1Stories[i];
+
+      // Create test session
+      const testSessionResponse = await requestTestAgent
+        .post(`/students/test-sessions`)
+        .send({
+          storyId: story.id,
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(201);
+
+      const testSessionId = testSessionResponse.body.data.id;
+      // Start STT questions (to simulate completing the test)
+      await requestTestAgent
+        .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(201);
+
+      // Manually set some accuracy for STT results to ensure we get a medal
+      const sttResults = await app
+        .get<DataSource>(DataSource)
+        .getRepository(STTWordResult)
+        .find({
+          where: { testSession: { id: testSessionId } },
+        });
+
+      for (const result of sttResults as any[]) {
+        await app
+          .get<DataSource>(DataSource)
+          .getRepository(STTWordResult)
+
+          .update(result.id, { accuracy: 100 }); // Set accuracy to 80% to get gold medal
+      }
+
+      // Finish test session
+      await requestTestAgent
+        .post(`/students/test-sessions/${testSessionId}/finish`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+    }
+
+    // Check levels again - level 2 should now be unlocked
+    const levelsResponseAfter = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const levelsAfter = levelsResponseAfter.body.data;
+
+    const level1After = levelsAfter.find((l: any) => l.no === 1);
+
+    const level2After = levelsAfter.find((l: any) => l.no === 2);
+
+    expect(level1After.isCompleted).toBe(true); // Level 1 should be completed
+    expect(level2After.isUnlocked).toBe(true); // Level 2 should be unlocked
+  });
+
+  it('POST /students/test-sessions/:id/finish | must replace medal count with higher medal when retaking the same story and got the higher medal', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    const levelsResponse = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const levels = levelsResponse.body.data;
+    const level1 = levels.find((l: any) => l.no === 1);
+    expect(level1.isUnlocked).toBe(true);
+
+    const story1 = level1.stories[0];
+
+    // First attempt - get bronze medal
+    const firstTestResponse = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: story1.id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const firstTestSessionId = firstTestResponse.body.data.id;
+
+    // Start STT questions for first test
+    await requestTestAgent
+      .post(`/students/test-sessions/${firstTestSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // Set low accuracy for bronze medal (50%)
+    const firstSttResults = await app
+      .get<DataSource>(DataSource)
+      .getRepository(STTWordResult)
+      .find({
+        where: { testSession: { id: firstTestSessionId } },
+      });
+
+    for (const result of firstSttResults as any[]) {
+      await app
+        .get<DataSource>(DataSource)
+        .getRepository(STTWordResult)
+        .update(result.id, { accuracy: 49 }); // 49% accuracy for bronze
+    }
+
+    // Finish first test session
+    await requestTestAgent
+      .post(`/students/test-sessions/${firstTestSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Check level progress after first test
+    const levelsAfterFirst = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level1AfterFirst = levelsAfterFirst.body.data.find(
+      (l: any) => l.no === 1,
+    );
+    expect(level1AfterFirst.requiredPoints).toBe(4);
+    expect(level1AfterFirst.isCompleted).toBe(false);
+    expect(level1AfterFirst.bronzeCount).toBe(1);
+    expect(level1AfterFirst.silverCount).toBe(0);
+    expect(level1AfterFirst.goldCount).toBe(0);
+
+    // Second attempt - get gold medal on the same story
+    const secondTestResponse = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: story1.id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const secondTestSessionId = secondTestResponse.body.data.id;
+
+    // Start STT questions for second test
+    await requestTestAgent
+      .post(`/students/test-sessions/${secondTestSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // Set high accuracy for gold medal (80%)
+    const secondSttResults = await app
+      .get<DataSource>(DataSource)
+      .getRepository(STTWordResult)
+      .find({
+        where: { testSession: { id: secondTestSessionId } },
+      });
+
+    for (const result of secondSttResults as any[]) {
+      await app
+        .get<DataSource>(DataSource)
+        .getRepository(STTWordResult)
+        .update(result.id, { accuracy: 80 }); // 80% accuracy for gold
+    }
+
+    // Finish second test session
+    await requestTestAgent
+      .post(`/students/test-sessions/${secondTestSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Check level progress after second test - bronze should be 0, gold should be 1
+    const levelsAfterSecond = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level1AfterSecond = levelsAfterSecond.body.data.find(
+      (l: any) => l.no === 1,
+    );
+    expect(level1AfterSecond.requiredPoints).toBe(2); // 5 - 3
+    expect(level1AfterSecond.bronzeCount).toBe(0); // Bronze replaced
+    expect(level1AfterSecond.silverCount).toBe(0);
+    expect(level1AfterSecond.goldCount).toBe(1); // Gold added
+  });
+
+  it('POST /students/test-sessions/:id/finish | must not replace medal count with lower medal when retaking the same story and got the lower medal', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    const levelsResponse = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const levels = levelsResponse.body.data;
+    const level1 = levels.find((l: any) => l.no === 1);
+    expect(level1.isUnlocked).toBe(true);
+
+    const story1 = level1.stories[0];
+
+    // First attempt - get silver medal
+    const firstTestResponse = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: story1.id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const firstTestSessionId = firstTestResponse.body.data.id;
+
+    // Start STT questions for first test
+    await requestTestAgent
+      .post(`/students/test-sessions/${firstTestSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // Set low accuracy for silver medal (51%)
+    const firstSttResults = await app
+      .get<DataSource>(DataSource)
+      .getRepository(STTWordResult)
+      .find({
+        where: { testSession: { id: firstTestSessionId } },
+      });
+
+    for (const result of firstSttResults as any[]) {
+      await app
+        .get<DataSource>(DataSource)
+        .getRepository(STTWordResult)
+        .update(result.id, { accuracy: 51 }); // 51% accuracy for silver
+    }
+
+    // Finish first test session
+    await requestTestAgent
+      .post(`/students/test-sessions/${firstTestSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Check level progress after first test
+    const levelsAfterFirst = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level1AfterFirst = levelsAfterFirst.body.data.find(
+      (l: any) => l.no === 1,
+    );
+    expect(level1AfterFirst.requiredPoints).toBe(3);
+    expect(level1AfterFirst.isCompleted).toBe(false);
+    expect(level1AfterFirst.bronzeCount).toBe(0);
+    expect(level1AfterFirst.silverCount).toBe(1);
+    expect(level1AfterFirst.goldCount).toBe(0);
+
+    // Second attempt - get bronze medal on the same story
+    const secondTestResponse = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: story1.id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const secondTestSessionId = secondTestResponse.body.data.id;
+
+    // Start STT questions for second test
+    await requestTestAgent
+      .post(`/students/test-sessions/${secondTestSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // Set high accuracy for bronze medal (<50%)
+    const secondSttResults = await app
+      .get<DataSource>(DataSource)
+      .getRepository(STTWordResult)
+      .find({
+        where: { testSession: { id: secondTestSessionId } },
+      });
+
+    for (const result of secondSttResults as any[]) {
+      await app
+        .get<DataSource>(DataSource)
+        .getRepository(STTWordResult)
+        .update(result.id, { accuracy: 49 }); // 49% accuracy for bronze
+    }
+
+    // Finish second test session
+    await requestTestAgent
+      .post(`/students/test-sessions/${secondTestSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Check level progress after second test - bronze should be 0, silver should remain 1
+    const levelsAfterSecond = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level1AfterSecond = levelsAfterSecond.body.data.find(
+      (l: any) => l.no === 1,
+    );
+    expect(level1AfterSecond.requiredPoints).toBe(3); // 5 - 2
+    expect(level1AfterSecond.bronzeCount).toBe(0);
+    expect(level1AfterSecond.silverCount).toBe(1); // Silver remains because it's higher than newly earned bronze
+    expect(level1AfterSecond.goldCount).toBe(0);
   });
 });

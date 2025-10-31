@@ -109,4 +109,26 @@ export class StudentTestSessionController {
       sttQuestions,
     );
   }
+
+  @Post(':id/finish')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.OK)
+  public async finishTestSession(
+    @Param('id') testSessionId: string,
+    @CurrentUser()
+    currentUser: ICurrentUser,
+  ): Promise<DataResponse<TestSessionResponseDTO>> {
+    const finishedTestSession: TestSessionResponseDTO =
+      await this.testSessionService.finishTestSession(
+        testSessionId,
+        currentUser.id,
+      );
+
+    return new DataResponse<TestSessionResponseDTO>(
+      HttpStatus.OK,
+      `Sesi tes dengan ID ${testSessionId} berhasil diselesaikan`,
+      finishedTestSession,
+    );
+  }
 }

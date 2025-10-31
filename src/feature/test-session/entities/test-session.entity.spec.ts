@@ -1,3 +1,5 @@
+import { StoryMedal } from 'src/feature/levels/enum/story-medal.enum';
+import { STTWordResult } from './stt-word-result.entity';
 import { TestSession } from './test-session.entity';
 
 describe('Unit Test: TestSession Entity', () => {
@@ -51,5 +53,75 @@ describe('Unit Test: TestSession Entity', () => {
     const testSession = new TestSession();
     testSession.startedAt = new Date('2025-01-01'); // Way past the 120 minutes limit
     expect(testSession.remainingTimeInSeconds).toBe(0);
+  });
+
+  it('must handle score and medal calculation right', () => {
+    const testSession: TestSession = new TestSession();
+    const sttWordResult: STTWordResult[] = [
+      {
+        id: 'stt-1',
+        testSession: testSession,
+        accuracy: 60,
+      } as STTWordResult,
+      {
+        id: 'stt-2',
+        testSession: testSession,
+        accuracy: 64,
+      } as STTWordResult,
+      {
+        id: 'stt-1',
+        testSession: testSession,
+        accuracy: 100,
+      } as STTWordResult,
+      {
+        id: 'stt-1',
+        testSession: testSession,
+        accuracy: null as unknown,
+      } as STTWordResult,
+    ];
+
+    testSession.score = testSession.calculateScore(sttWordResult);
+    expect(testSession.score).toBe(224 / 4);
+    testSession.medal = testSession.determineMedal();
+    expect(testSession.medal).toBe(StoryMedal.SILVER);
+
+    const testSession2: TestSession = new TestSession();
+    const sttWordResult2: STTWordResult[] = [
+      {
+        id: 'stt-1',
+        testSession: testSession,
+        accuracy: 60,
+      } as STTWordResult,
+      {
+        id: 'stt-2',
+        testSession: testSession,
+        accuracy: 64,
+      } as STTWordResult,
+      {
+        id: 'stt-1',
+        testSession: testSession,
+        accuracy: 100,
+      } as STTWordResult,
+      {
+        id: 'stt-1',
+        testSession: testSession,
+        accuracy: 100,
+      } as STTWordResult,
+    ];
+
+    testSession2.score = testSession2.calculateScore(sttWordResult2);
+    expect(testSession2.score).toBe(81);
+    testSession2.medal = testSession2.determineMedal();
+    expect(testSession2.medal).toBe(StoryMedal.GOLD);
+  });
+
+  it('must handle score and medal calculation right if no stt', () => {
+    const testSession: TestSession = new TestSession();
+    const sttWordResult: STTWordResult[] = [];
+
+    testSession.score = testSession.calculateScore(sttWordResult);
+    expect(testSession.score).toBe(0);
+    testSession.medal = testSession.determineMedal();
+    expect(testSession.medal).toBe(StoryMedal.BRONZE);
   });
 });
