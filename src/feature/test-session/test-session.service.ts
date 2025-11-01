@@ -19,6 +19,8 @@ import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
 import { STTWordResult } from './entities/stt-word-result.entity';
 import { TestSession } from './entities/test-session.entity';
+import { AnswerSTTQuestionDTO } from './dtos/answer-stt-question.dto';
+import { STTAnsweredQuestionDTO } from './dtos/stt-answered-question.dto';
 
 @Injectable()
 export class TestSessionService extends ITransactionalService {
@@ -278,6 +280,64 @@ export class TestSessionService extends ITransactionalService {
     }
 
     return questionsResponseDTO;
+  }
+
+  public async answerSTTQuestionSession(
+    testSessionId: string,
+    sttQuestionId: string,
+    studentId: string,
+    answerSTTQuestionDTO: AnswerSTTQuestionDTO,
+  ): Promise<STTAnsweredQuestionDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+    if (testSession.remainingTimeInSeconds <= 0) {
+      testSession.finishedAt = new Date();
+      await this.testSessionRepository.save(testSession);
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+
+    const sttWordResult: STTWordResult | null =
+      await this.sttWordResultRepository.findOne({
+        where: {
+          id: sttQuestionId,
+          testSession: { id: testSessionId },
+        },
+      });
+    if (!sttWordResult) {
+      throw new NotFoundException(
+        `Pertanyaan STT dengan ID ${sttQuestionId} untuk sesi tes dengan ID ${testSessionId} tidak ditemukan`,
+      );
+    }
+    if (!sttWordResult.canBeAnswered()) {
+      throw new ForbiddenException(
+        `Pertanyaan STT dengan ID ${sttQuestionId} untuk sesi tes dengan ID ${testSessionId} sudah pernah dijawab`,
+      );
+    }
+
+    sttWordResult.spokenWord = answerSTTQuestionDTO.spokenWord;
+    sttWordResult.accuracy = answerSTTQuestionDTO.accuracy;
+    await this.sttWordResultRepository.save(sttWordResult);
+
+    const answeredQuestionDTO: STTAnsweredQuestionDTO = {
+      id: sttWordResult.id,
+      instruction: sttWordResult.instruction,
+      expectedWord: sttWordResult.expectedWord,
+      spokenWord: sttWordResult.spokenWord,
+      accuracy: sttWordResult.accuracy,
+      createdAt: sttWordResult.createdAt,
+      updatedAt: sttWordResult.updatedAt,
+    };
+
+    return answeredQuestionDTO;
   }
 
   public async finishTestSession(

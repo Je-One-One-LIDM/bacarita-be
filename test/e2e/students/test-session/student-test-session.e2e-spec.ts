@@ -10,6 +10,7 @@ import { LevelSeeder } from 'src/database/seeders/level.seeder';
 import { OpenRouterService } from 'src/feature/ai/open-router.service';
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
+import { STTWordResult } from 'src/feature/test-session/entities/stt-word-result.entity';
 import { TestSession } from 'src/feature/test-session/entities/test-session.entity';
 import * as request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
@@ -17,7 +18,6 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import createTestingApp from '../../../utils/create-testing-app.utils';
 import { clearDatabase } from '../../../utils/testing-database.utils';
-import { STTWordResult } from 'src/feature/test-session/entities/stt-word-result.entity';
 
 describe('Student Test Session (e2e)', () => {
   let app: INestApplication<App>;
@@ -114,8 +114,8 @@ describe('Student Test Session (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
 
-    randomUUIDV7.mockClear();
-    randomNumericCode.mockClear();
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
   });
 
   afterAll(async () => {
@@ -654,6 +654,647 @@ describe('Student Test Session (e2e)', () => {
       .post(`/students/test-sessions/TESTSESSION-nonexistent/stt-questions`)
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must successfully answer an STT question', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Answer the first question
+    const answerResponse = await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    console.log(sttQuestions);
+
+    const answeredQuestion = answerResponse.body.data;
+    console.log(answeredQuestion);
+    expect(answeredQuestion).toBeDefined();
+    expect(answeredQuestion.id).toBe(firstQuestion.id);
+    expect(answeredQuestion.expectedWord).toBe(firstQuestion.expectedWord);
+    expect(answeredQuestion.spokenWord).toBe('Test answer');
+    expect(answeredQuestion.accuracy).toBe(85.5);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject if test session is already finished', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Mark the test session as finished
+    await app
+      .get<DataSource>(DataSource)
+      .getRepository(TestSession)
+      .update(
+        { id: testSessionId },
+        {
+          startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // started 3 hours ago
+          finishedAt: new Date(),
+        },
+      );
+
+    // Try to answer after test session is finished
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject if time has expired', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Mark the test session as started 3 hours ago (time expired)
+    await app
+      .get<DataSource>(DataSource)
+      .getRepository(TestSession)
+      .update(
+        { id: testSessionId },
+        {
+          startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        },
+      );
+
+    // Try to answer after time expired
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject if STT question not found', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    // Try to answer a non-existent question
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/STTWORDRESULT-nonexistent/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject if STT question already answered', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Answer the question once
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'First answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Try to answer the same question again
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Second answer',
+        accuracy: 90.0,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject if not authenticated', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Try to answer without authentication
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(401);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject if student tries to answer another student STT question', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    // Student 2 creates a test session and starts STT questions
+    const student2SignInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const student2Token = student2SignInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${student2Token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Student 1 tries to answer Student 2's STT question
+    const student1SignInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student1',
+        password: '123456',
+      })
+      .expect(200);
+    const student1Token = student1SignInResponse.body.data.token;
+
+    // Should be rejected (403 since it doesn't belong to student1)
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${student1Token}`)
+      .expect(404);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject with invalid data - missing spokenWord', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Try to answer without spokenWord
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        accuracy: 85.5,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject with invalid data - missing accuracy', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Try to answer without accuracy
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('POST /students/test-sessions/:id/stt-questions/:stt-id/answer | must reject with invalid data - negative accuracy', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    const firstQuestion = sttQuestions[0];
+
+    // Try to answer with negative accuracy
+    await requestTestAgent
+      .post(
+        `/students/test-sessions/${testSessionId}/stt-questions/${firstQuestion.id}/answer`,
+      )
+      .send({
+        spokenWord: 'Test answer',
+        accuracy: -10,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
   });
 
   it('GET /students/test-sessions/:id | must reject if student tries to access another student test session', async () => {

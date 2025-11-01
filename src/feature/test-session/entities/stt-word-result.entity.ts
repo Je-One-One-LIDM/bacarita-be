@@ -37,4 +37,8 @@ export class STTWordResult {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  public canBeAnswered(): boolean {
+    return this.spokenWord === null || this.accuracy === null;
+  }
 }
