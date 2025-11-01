@@ -39,6 +39,6 @@ export class STTWordResult {
   updatedAt: Date;
 
   public canBeAnswered(): boolean {
-    return this.spokenWord === null || this.accuracy === null;
+    return this.spokenWord == null || this.accuracy == null;
   }
 }

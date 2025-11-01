@@ -10,6 +10,7 @@ import { LevelSeeder } from 'src/database/seeders/level.seeder';
 import { OpenRouterService } from 'src/feature/ai/open-router.service';
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
+import { StoryMedal } from 'src/feature/levels/enum/story-medal.enum';
 import { STTWordResult } from 'src/feature/test-session/entities/stt-word-result.entity';
 import { TestSession } from 'src/feature/test-session/entities/test-session.entity';
 import * as request from 'supertest';
@@ -714,10 +715,7 @@ describe('Student Test Session (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    console.log(sttQuestions);
-
     const answeredQuestion = answerResponse.body.data;
-    console.log(answeredQuestion);
     expect(answeredQuestion).toBeDefined();
     expect(answeredQuestion.id).toBe(firstQuestion.id);
     expect(answeredQuestion.expectedWord).toBe(firstQuestion.expectedWord);
@@ -2121,5 +2119,108 @@ describe('Student Test Session (e2e)', () => {
     expect(level1AfterSecond.bronzeCount).toBe(0);
     expect(level1AfterSecond.silverCount).toBe(1); // Silver remains because it's higher than newly earned bronze
     expect(level1AfterSecond.goldCount).toBe(0);
+  });
+
+  it('must complete full flow: start STT questions, answer all, finish, and calculate correct medal and points', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 2 },
+        relations: ['stories'],
+      });
+    expect(level2).not.toBeNull();
+
+    // Create a new test session
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level2!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    expect(sttQuestions).toBeDefined();
+    expect(Array.isArray(sttQuestions)).toBe(true);
+    expect(sttQuestions.length).toBeGreaterThan(0);
+
+    // Answer all STT questions with high accuracy (for gold medal - 80%+)
+    for (let i = 0; i < sttQuestions.length; i++) {
+      const question = sttQuestions[i];
+      const accuracy = 85 + Math.random() * 10; // Random between 85-95%
+
+      const answerResponse = await requestTestAgent
+        .post(
+          `/students/test-sessions/${testSessionId}/stt-questions/${question.id}/answer`,
+        )
+        .send({
+          spokenWord: question.expectedWord, // Use the expected word for realistic test
+          accuracy: accuracy,
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      const answeredQuestion = answerResponse.body.data;
+      expect(answeredQuestion).toBeDefined();
+      expect(answeredQuestion.id).toBe(question.id);
+      expect(answeredQuestion.spokenWord).toBe(question.expectedWord);
+      expect(answeredQuestion.accuracy).toBeCloseTo(accuracy, 2);
+    }
+
+    // Finish the test session
+    const finishResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const finishedSession = finishResponse.body.data;
+    expect(finishedSession).toBeDefined();
+    expect(finishedSession.id).toBe(testSessionId);
+    expect(finishedSession.finishedAt).not.toBeNull();
+    expect(finishedSession.isCompleted).toBe(true);
+
+    // Verify the medal is gold (since all answers were 85%+ accuracy)
+    expect(finishedSession.medal).toBe(StoryMedal.GOLD);
+    expect(finishedSession.score).toBeGreaterThanOrEqual(80);
+
+    // Check level progress - should have 1 gold medal and 3 required points (5 - 2 for gold)
+    const levelsAfter = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level2After = levelsAfter.body.data.find((l: any) => l.no === 2);
+    expect(level2After).toBeDefined();
+    expect(level2After.goldCount).toBe(1);
+    expect(level2After.silverCount).toBe(0);
+    expect(level2After.bronzeCount).toBe(0);
+    expect(level2After.requiredPoints).toBe(4); // 6 - 2 (gold medal points)
+    expect(level2After.isCompleted).toBe(false);
   });
 });
