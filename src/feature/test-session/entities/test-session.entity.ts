@@ -33,7 +33,7 @@ export class TestSession {
     () => STTWordResult,
     (sttWordResult: STTWordResult) => sttWordResult.testSession,
   )
-  sttWordResult: STTWordResult[];
+  sttWordResults: STTWordResult[];
 
   @Column()
   titleAtTaken: string;

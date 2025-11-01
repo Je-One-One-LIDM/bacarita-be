@@ -14,10 +14,12 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthRole } from '../auth/enums/auth.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { ICurrentUser } from '../auth/interfaces/current-user.interfaces';
+import { AnswerSTTQuestionDTO } from './dtos/answer-stt-question.dto';
 import { StartNewTestSessionDTO } from './dtos/start-new-test-session.dto';
+import { STTAnsweredQuestionDTO } from './dtos/stt-answered-question.dto';
+import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
 import { TestSessionService } from './test-session.service';
-import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 
 @Controller('students/test-sessions')
 export class StudentTestSessionController {
@@ -85,6 +87,31 @@ export class StudentTestSessionController {
       HttpStatus.OK,
       `Status test session dengan ID ${testSessionId} valid`,
       testSession,
+    );
+  }
+
+  @Post(':id/stt-questions/:sttId/answer')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.OK)
+  public async answerSTTQuestionSession(
+    @Param('id') testSessionId: string,
+    @Param('sttId') sttQuestionId: string,
+    @Body() answerSTTQuestionDTO: AnswerSTTQuestionDTO,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<DataResponse<STTAnsweredQuestionDTO>> {
+    const sttQuestions: STTAnsweredQuestionDTO =
+      await this.testSessionService.answerSTTQuestionSession(
+        testSessionId,
+        sttQuestionId,
+        currentUser.id,
+        answerSTTQuestionDTO,
+      );
+
+    return new DataResponse<STTAnsweredQuestionDTO>(
+      HttpStatus.CREATED,
+      `Berhasil menjawab pertanyaan STT dengan ID ${sttQuestionId} pada sesi tes dengan ID ${testSessionId}`,
+      sttQuestions,
     );
   }
 

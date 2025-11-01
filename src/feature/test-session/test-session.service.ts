@@ -15,6 +15,8 @@ import { Story } from '../levels/entities/story.entity';
 import { StoryMedal } from '../levels/enum/story-medal.enum';
 import { Student } from '../users/entities/student.entity';
 import { StudentService } from '../users/student/student.service';
+import { AnswerSTTQuestionDTO } from './dtos/answer-stt-question.dto';
+import { STTAnsweredQuestionDTO } from './dtos/stt-answered-question.dto';
 import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
 import { STTWordResult } from './entities/stt-word-result.entity';
@@ -280,6 +282,64 @@ export class TestSessionService extends ITransactionalService {
     return questionsResponseDTO;
   }
 
+  public async answerSTTQuestionSession(
+    testSessionId: string,
+    sttQuestionId: string,
+    studentId: string,
+    answerSTTQuestionDTO: AnswerSTTQuestionDTO,
+  ): Promise<STTAnsweredQuestionDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+    if (testSession.remainingTimeInSeconds <= 0) {
+      testSession.finishedAt = new Date();
+      await this.testSessionRepository.save(testSession);
+      throw new ForbiddenException(
+        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+      );
+    }
+
+    const sttWordResult: STTWordResult | null =
+      await this.sttWordResultRepository.findOne({
+        where: {
+          id: sttQuestionId,
+          testSession: { id: testSessionId },
+        },
+      });
+    if (!sttWordResult) {
+      throw new NotFoundException(
+        `Pertanyaan STT dengan ID ${sttQuestionId} untuk sesi tes dengan ID ${testSessionId} tidak ditemukan`,
+      );
+    }
+    if (!sttWordResult.canBeAnswered()) {
+      throw new ForbiddenException(
+        `Pertanyaan STT dengan ID ${sttQuestionId} untuk sesi tes dengan ID ${testSessionId} sudah pernah dijawab`,
+      );
+    }
+
+    sttWordResult.spokenWord = answerSTTQuestionDTO.spokenWord;
+    sttWordResult.accuracy = answerSTTQuestionDTO.accuracy;
+    await this.sttWordResultRepository.save(sttWordResult);
+
+    const answeredQuestionDTO: STTAnsweredQuestionDTO = {
+      id: sttWordResult.id,
+      instruction: sttWordResult.instruction,
+      expectedWord: sttWordResult.expectedWord,
+      spokenWord: sttWordResult.spokenWord,
+      accuracy: sttWordResult.accuracy,
+      createdAt: sttWordResult.createdAt,
+      updatedAt: sttWordResult.updatedAt,
+    };
+
+    return answeredQuestionDTO;
+  }
+
   public async finishTestSession(
     testSessionId: string,
     studentId: string,
@@ -310,36 +370,45 @@ export class TestSessionService extends ITransactionalService {
           lp.student_id === studentId,
       );
     if (levelProgress) {
-      // Check if student has previously completed this story (exclude current session)
-      const previousTestSession: TestSession | null =
-        await this.testSessionRepository.findOne({
+      // Find the best medal ever achieved for this story (excluding current session)
+      const allPreviousSessions: TestSession[] =
+        await this.testSessionRepository.find({
           where: {
             student: { id: studentId },
             story: { id: testSession.story?.id },
             finishedAt: Not(IsNull()),
             id: Not(testSessionId),
           },
-          order: { finishedAt: 'DESC' },
         });
 
-      // Only update medal count if new medal is higher than previous
-      if (previousTestSession && previousTestSession.medal) {
-        const previousMedalValue: number = this.getMedalValue(
-          previousTestSession.medal,
-        );
+      // Find the highest medal value from all previous sessions
+      let bestPreviousMedal: StoryMedal | null = null;
+      let highestMedalValue = 0;
+      for (const session of allPreviousSessions) {
+        const medalValue = this.getMedalValue(session.medal ?? null);
+        if (medalValue > highestMedalValue) {
+          highestMedalValue = medalValue;
+          bestPreviousMedal = session.medal ?? null;
+        }
+      }
+
+      // Only update medal count if new medal is higher than the best previous medal
+      if (bestPreviousMedal) {
+        const previousMedalValue: number =
+          this.getMedalValue(bestPreviousMedal);
         const newMedalValue: number = this.getMedalValue(testSession.medal);
 
-        // If new medal is higher, remove old medal and add new one
+        // If new medal is higher, remove old best medal and add new one
         if (newMedalValue > previousMedalValue) {
-          // Remove previous medal count
-          if (previousTestSession.medal === StoryMedal.GOLD) {
+          // Remove the best previous medal count
+          if (bestPreviousMedal === StoryMedal.GOLD) {
             levelProgress.goldCount = Math.max(0, levelProgress.goldCount - 1);
-          } else if (previousTestSession.medal === StoryMedal.SILVER) {
+          } else if (bestPreviousMedal === StoryMedal.SILVER) {
             levelProgress.silverCount = Math.max(
               0,
               levelProgress.silverCount - 1,
             );
-          } else if (previousTestSession.medal === StoryMedal.BRONZE) {
+          } else if (bestPreviousMedal === StoryMedal.BRONZE) {
             levelProgress.bronzeCount = Math.max(
               0,
               levelProgress.bronzeCount - 1,
