@@ -1,4 +1,3 @@
-import { Expose } from 'class-transformer';
 import { Student } from 'src/feature/users/entities/student.entity';
 import {
   Column,
