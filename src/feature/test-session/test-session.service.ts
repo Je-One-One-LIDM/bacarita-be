@@ -224,43 +224,51 @@ export class TestSessionService extends ITransactionalService {
     testSessionId: string,
     studentId: string,
   ): Promise<STTQuestionResponseDTO[]> {
-    const testSession: TestSession = await this.findAndAuthorizeTestSession(
-      testSessionId,
-      studentId,
-    );
-    if (testSession.finishedAt) {
-      throw new ForbiddenException(
-        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
-      );
-    }
-    if (testSession.remainingTimeInSeconds <= 0) {
-      testSession.finishedAt = new Date();
-      await this.testSessionRepository.save(testSession);
-      throw new ForbiddenException(
-        `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
-      );
-    }
-
-    const sttWordResults: STTWordResult[] =
-      await this.sttWordResultRepository.find({
-        where: { testSession: { id: testSessionId } },
-      });
-
-    const questionsResponseDTO: STTQuestionResponseDTO[] = [];
-    if (sttWordResults.length > 0) {
-      throw new ForbiddenException(
-        `Sesi pertanyaan STT untuk sesi tes dengan ID ${testSessionId} sudah pernah dimulai`,
-      );
-    } else {
-      // Initialize STT Word Results for the Test Session
-      const questions: string[] =
-        await this.openRouterService.generateQuestionsFromStoryPassage(
-          testSession.passageAtTaken,
-        );
-      await this.withTransaction<void>(async (manager: EntityManager) => {
+    return this.withTransaction<STTQuestionResponseDTO[]>(
+      async (manager: EntityManager) => {
+        const testSessionRepo: Repository<TestSession> =
+          manager.getRepository(TestSession);
         const sttWordResultRepo: Repository<STTWordResult> =
           manager.getRepository(STTWordResult);
 
+        const testSession: TestSession = await this.findAndAuthorizeTestSession(
+          testSessionId,
+          studentId,
+          {
+            repository: testSessionRepo,
+          },
+        );
+
+        if (testSession.finishedAt) {
+          throw new ForbiddenException(
+            `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+          );
+        }
+        if (testSession.remainingTimeInSeconds <= 0) {
+          testSession.finishedAt = new Date();
+          await testSessionRepo.save(testSession);
+          throw new ForbiddenException(
+            `Waktu sesi tes dengan ID ${testSessionId} telah habis`,
+          );
+        }
+
+        const sttWordResults: STTWordResult[] = await sttWordResultRepo.find({
+          where: { testSession: { id: testSessionId } },
+        });
+
+        if (sttWordResults.length > 0) {
+          throw new ForbiddenException(
+            `Sesi pertanyaan STT untuk sesi tes dengan ID ${testSessionId} sudah pernah dimulai`,
+          );
+        }
+
+        // Initialize STT Word Results for the Test Session
+        const questions: string[] =
+          await this.openRouterService.generateQuestionsFromStoryPassage(
+            testSession.passageAtTaken,
+          );
+
+        const questionsResponseDTO: STTQuestionResponseDTO[] = [];
         for (const question of questions) {
           const sttWordResult: STTWordResult = sttWordResultRepo.create({
             id: 'STTWORDRESULT-' + this.tokenGeneratorService.randomUUIDV7(),
@@ -276,10 +284,10 @@ export class TestSessionService extends ITransactionalService {
             updatedAt: sttWordResult.updatedAt,
           });
         }
-      });
-    }
 
-    return questionsResponseDTO;
+        return questionsResponseDTO;
+      },
+    );
   }
 
   public async answerSTTQuestionSession(
