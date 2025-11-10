@@ -18,13 +18,9 @@
 ## Project setup
 
 ```bash
-$ git clone --depth=1 https://github.com/AghnatHs/nest-core-kit.git nest-core-kit
+$ git clone https://github.com/Je-One-One-LIDM/bacarita-be.git
 
-$ cd nest-core-kit
-
-$ rm -rf .git
-
-$ git init
+$ cd bacarita-be
 
 $ npm install
 
