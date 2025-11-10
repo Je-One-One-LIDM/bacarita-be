@@ -42,6 +42,7 @@ export class OpenRouterService {
       - Prefer **high-frequency or early-reading words** (e.g., “Rafi pakai sepatu hujan”)
       - Avoid abstract or compound sentences
       - Avoid new vocabulary not present in the story
+      - Avoid punctuation and special characters
       - Include a mix of:
         - **Whole-word repetition prompts** (for sight word recall)
         - **Short phrase reconstruction** (for context recall)
