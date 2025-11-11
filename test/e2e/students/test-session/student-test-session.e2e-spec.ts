@@ -29,6 +29,7 @@ describe('Student Test Session (e2e)', () => {
     Promise<string[]>,
     [passage: string]
   >;
+  let generateQuestionsForPreTestSpy: jest.SpyInstance<Promise<string[]>, []>;
   let randomUUIDV7: jest.SpyInstance<string, [length?: number | undefined]>;
   let randomNumericCode: jest.SpyInstance<
     string,
@@ -67,6 +68,27 @@ describe('Student Test Session (e2e)', () => {
       'Rafi 2',
       'Rafi 3',
       'Rafi 4',
+    ]);
+    generateQuestionsForPreTestSpy = jest.spyOn(
+      openRouterService,
+      'generateQuestionsForPreTest',
+    );
+    generateQuestionsForPreTestSpy.mockResolvedValue([
+      'Rafi 1',
+      'Rafi 2',
+      'Rafi 3',
+      'Rafi 4',
+      'Rafi 5',
+      'Rafi 6',
+      'Rafi 7',
+      'Rafi 8',
+      'Rafi 9',
+      'Rafi 10',
+      'Rafi 11',
+      'Rafi 12',
+      'Rafi 13',
+      'Rafi 14',
+      'Rafi 15',
     ]);
 
     // Create a test teacher and student
@@ -2334,6 +2356,139 @@ describe('Student Test Session (e2e)', () => {
     expect(level2After.bronzeCount).toBe(0);
     expect(level2After.requiredPoints).toBe(2); // 5 - 3 (gold medal points)
     expect(level2After.isCompleted).toBe(false);
+  });
+
+  it('must complete full flow of pre-test: start STT questions, answer all, finish, and calculate correct medal and points, calculate correct level skipped', async () => {
+    randomUUIDV7.mockRestore();
+    randomNumericCode.mockRestore();
+    const signInResponse = await requestTestAgent
+      .post('/auth/students/login')
+      .send({
+        username: 'student2',
+        password: '123456',
+      })
+      .expect(200);
+    const token = signInResponse.body.data.token;
+
+    // to populate the level progresses
+    await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level0: Level | null = await app
+      .get<DataSource>(DataSource)
+      .getRepository(Level)
+      .findOne({
+        where: { no: 0 },
+        relations: ['stories'],
+      });
+    expect(level0).not.toBeNull();
+
+    // Create a new test session
+    const response = await requestTestAgent
+      .post(`/students/test-sessions`)
+      .send({
+        storyId: level0!.stories[0].id,
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const testSessionId = response.body.data.id;
+
+    // Start STT questions
+    const sttResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/stt-questions`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    const sttQuestions = sttResponse.body.data;
+    expect(sttQuestions).toBeDefined();
+    expect(Array.isArray(sttQuestions)).toBe(true);
+    expect(sttQuestions.length).toBeGreaterThan(0);
+
+    // Answer all STT questions with high accuracy (for gold medal - 80%+)
+    for (let i = 0; i < sttQuestions.length; i++) {
+      const question = sttQuestions[i];
+      const accuracy = 40 + Math.random() * 5; // Random between 85-95%
+
+      const answerResponse = await requestTestAgent
+        .post(
+          `/students/test-sessions/${testSessionId}/stt-questions/${question.id}/answer`,
+        )
+        .send({
+          spokenWord: question.expectedWord, // Use the expected word for realistic test
+          accuracy: accuracy,
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      const answeredQuestion = answerResponse.body.data;
+      expect(answeredQuestion).toBeDefined();
+      expect(answeredQuestion.id).toBe(question.id);
+      expect(answeredQuestion.spokenWord).toBe(question.expectedWord);
+      expect(answeredQuestion.accuracy).toBeCloseTo(accuracy, 2);
+    }
+
+    // Finish the test session
+    const finishResponse = await requestTestAgent
+      .post(`/students/test-sessions/${testSessionId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const finishedSession = finishResponse.body.data;
+    expect(finishedSession).toBeDefined();
+    expect(finishedSession.id).toBe(testSessionId);
+    expect(finishedSession.finishedAt).not.toBeNull();
+    expect(finishedSession.isCompleted).toBe(true);
+
+    // Verify the medal is bronze (since all answers were 40%+ accuracy)
+    expect(finishedSession.medal).toBe(StoryMedal.BRONZE);
+    expect(finishedSession.score).toBeGreaterThanOrEqual(40);
+
+    const levelsAfter = await requestTestAgent
+      .get('/students/levels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const level0After = levelsAfter.body.data.find((l: any) => l.no === 0);
+    expect(level0After).toBeDefined();
+    expect(level0After.goldCount).toBe(0);
+    expect(level0After.silverCount).toBe(0);
+    expect(level0After.bronzeCount).toBe(1);
+    expect(level0After.requiredPoints).toBe(2); // 3 - 1 (bronze medal points)
+    expect(level0After.isCompleted).toBe(false);
+
+    // Should be skipped levels, 40 scored is jumped to level 3, level 2 and 1 is skipped
+    const level1After = levelsAfter.body.data.find((l: any) => l.no === 1);
+    expect(level1After).toBeDefined();
+    expect(level1After.isUnlocked).toBe(true);
+    expect(level1After.isSkipped).toBe(true);
+    expect(level1After.progress).toBe(100);
+    expect(level1After.goldCount).toBe(0);
+    expect(level1After.silverCount).toBe(0);
+    expect(level1After.bronzeCount).toBe(0);
+    expect(level1After.isCompleted).toBe(true);
+
+    const level2After = levelsAfter.body.data.find((l: any) => l.no === 2);
+    expect(level2After).toBeDefined();
+    expect(level2After.isUnlocked).toBe(true);
+    expect(level2After.isSkipped).toBe(true);
+    expect(level2After.progress).toBe(100);
+    expect(level2After.goldCount).toBe(0);
+    expect(level2After.silverCount).toBe(0);
+    expect(level2After.bronzeCount).toBe(0);
+    expect(level2After.isCompleted).toBe(true);
+
+    const level3After = levelsAfter.body.data.find((l: any) => l.no === 3);
+    expect(level3After).toBeDefined();
+    expect(level3After.isUnlocked).toBe(true);
+    expect(level3After.isSkipped).toBe(false);
+    expect(level3After.progress).toBe(0);
+    expect(level3After.goldCount).toBe(0);
+    expect(level3After.silverCount).toBe(0);
+    expect(level3After.bronzeCount).toBe(0);
+    expect(level3After.isCompleted).toBe(false);
   });
 
   it('POST /students/test-sessions/:id/finish | must not duplicate medal count when retaking story: gold → silver → gold scenario', async () => {
