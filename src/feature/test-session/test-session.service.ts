@@ -380,11 +380,12 @@ export class TestSessionService extends ITransactionalService {
     testSession.medal = testSession.determineMedal();
     testSession.finishedAt = new Date();
 
-    // Handle Pre-Test (Level 0) completion and auto-leveling thingy
+    // -- HANDLE PRE-TEST COMPLETION AND LEVEL PROGRESS UPDATES --
     const isPreTest: boolean = testSession.story?.level.no === 0;
     if (isPreTest) {
       await this.handlePreTestCompletion(testSession, studentId);
     }
+    // -- END HANDLE PRE-TEST COMPLETION AND LEVEL PROGRESS UPDATES --
 
     // Update Level Progress medal count based on the medal achieved in this Test Session
     const levelProgress: LevelProgress | undefined =
