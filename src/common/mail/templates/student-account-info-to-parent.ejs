@@ -1,21 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akun Bacarita Anak Anda</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 24px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 16px 0;
+    }
+
+    li {
+      background: #fafafa;
+      border: 1px solid #e6e6e6;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    strong {
+      display: inline-block;
+      width: 120px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: #555;
+      margin-top: 32px;
+      border-top: 1px solid #eee;
+      padding-top: 16px;
+    }
+  </style>
+</head>
 
 <body>
-  <h2>Informasi akun Bacarita untuk anak Anda!</h2>
-  <p>Kami senang Anda bergabung!</p>
-  <p>Akun Anak Anda telah berhasil dibuat dengan rincian berikut:</p>
-  <ul>
-    <li><strong>Peran:</strong> Anak</li>
-    <li><strong>Nama Pengguna Anak:</strong>
-      <%= studentUsername %>
-    </li>
-    <li><strong>Kata Sandi Anak:</strong>
-      <%= studentPassword %>
-    </li>
-  </ul>
-  <p>Jika Anda memiliki pertanyaan atau butuh bantuan, jangan ragu untuk menghubungi tim dukungan kami.</p>
-  <p>Salam hangat,<br>Tim Bacarita</p>
+  <div class="container">
+    <h2>Informasi Akun Bacarita Anak Anda</h2>
+    <p>Halo !</p>
+    <p>
+      Kami senang Anda bergabung! Akun anak Anda telah berhasil dibuat
+      dengan rincian berikut:
+    </p>
+
+    <ul>
+      <li><strong>Peran:</strong> Anak</li>
+      <li><strong>Nama Pengguna:</strong>
+        <%= studentUsername %>
+      </li>
+      <li><strong>Kata Sandi:</strong>
+        <%= studentPassword %>
+      </li>
+    </ul>
+
+    <p>
+      Mohon simpan informasi ini dengan aman. Jika Anda memiliki pertanyaan
+      atau membutuhkan bantuan, jangan ragu untuk menghubungi tim dukungan
+      kami.
+    </p>
+
+    <p>Salam hangat,<br /><strong>Tim Bacarita</strong></p>
+
+    <div class="footer">
+      &copy; <%= new Date().getFullYear() %> Bacarita.
+    </div>
+  </div>
 </body>
 
 </html>

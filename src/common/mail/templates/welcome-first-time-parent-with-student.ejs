@@ -1,32 +1,116 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Selamat Datang di Bacarita</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 24px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 16px 0;
+    }
+
+    li {
+      background: #fafafa;
+      border: 1px solid #e6e6e6;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    strong {
+      display: inline-block;
+      width: 170px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: #555;
+      margin-top: 32px;
+      border-top: 1px solid #eee;
+      padding-top: 16px;
+    }
+  </style>
+</head>
 
 <body>
-  <h2>Selamat Datang di Bacarita, <%= parentUsername %>!</h2>
-  <p>Akun Anak Anda telah ditambah telah berhasil dibuat dengan rincian berikut:</p>
-  <ul>
-    <li><strong>Peran:</strong> Orang Tua</li>
-    <li><strong>Nama Pengguna:</strong>
-      <%= parentUsername %>
-    </li>
-    <li><strong>Email:</strong>
-      <%= parentEmail %>
-    </li>
-    <li><strong>Kata Sandi:</strong>
-      <%= parentPassword %>
-    </li>
-    <li><strong>Peran:</strong> Siswa</li>
-    <li><strong>Nama Pengguna Siswa:</strong>
-      <%= studentUsername %>
-    </li>
-    <li><strong>Kata Sandi Siswa:</strong>
-      <%= studentPassword %>
-    </li>
-  </ul>
-  <p>Untuk memulai, silakan masuk ke akun Anda menggunakan kredensial yang diberikan.</p>
-  <p>Jika Anda memiliki pertanyaan atau butuh bantuan, jangan ragu untuk menghubungi tim dukungan kami.</p>
-  <p>Selamat belajar!</p>
-  <p>Salam hangat,<br>Tim Bacarita</p>
+  <div class="container">
+    <h2>Selamat Datang di Bacarita, <%= parentUsername %>!</h2>
+
+    <p>
+      Akun Anak Anda telah ditambah telah berhasil dibuat dengan rincian berikut:
+    </p>
+
+    <ul>
+      <li><strong>Peran:</strong> Orang Tua</li>
+      <li><strong>Nama Pengguna:</strong>
+        <%= parentUsername %>
+      </li>
+      <li><strong>Email:</strong>
+        <%= parentEmail %>
+      </li>
+      <li><strong>Kata Sandi:</strong>
+        <%= parentPassword %>
+      </li>
+      <li><strong>Peran:</strong> Siswa</li>
+      <li><strong>Nama Pengguna Siswa:</strong>
+        <%= studentUsername %>
+      </li>
+      <li><strong>Kata Sandi Siswa:</strong>
+        <%= studentPassword %>
+      </li>
+    </ul>
+
+    <p>
+      Untuk memulai, silakan masuk ke akun Anda menggunakan kredensial yang diberikan.
+    </p>
+
+    <p>
+      Jika Anda memiliki pertanyaan atau butuh bantuan, jangan ragu untuk menghubungi tim dukungan kami.
+    </p>
+
+    <p>Selamat belajar!</p>
+
+    <p>Salam hangat,<br /><strong>Tim Bacarita</strong></p>
+
+    <div class="footer">
+      &copy; <%= new Date().getFullYear() %> Bacarita. Semua hak dilindungi.
+    </div>
+  </div>
 </body>
 
 </html>
