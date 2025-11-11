@@ -53,6 +53,7 @@ export class ParentDashboardTestSessionDTO {
     username: string;
     fullName: string;
   };
+  levelFullName: string;
   titleAtTaken: string;
   startedAt: Date;
   finishedAt?: Date;

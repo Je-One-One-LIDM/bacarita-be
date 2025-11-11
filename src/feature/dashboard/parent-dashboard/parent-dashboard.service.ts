@@ -44,7 +44,7 @@ export class ParentDashboardService {
     const allTestSessions: TestSession[] = studentIds.length
       ? await this.testSessionRepository.find({
           where: { student: { id: In(studentIds) } },
-          relations: ['student', 'sttWordResults'],
+          relations: ['student', 'sttWordResults', 'story', 'story.level'],
           order: { startedAt: 'DESC' },
         })
       : [];
@@ -71,6 +71,7 @@ export class ParentDashboardService {
           username: ts.student.username,
           fullName: ts.student.fullName,
         },
+        levelFullName: ts.story?.level.fullName ?? '-',
         titleAtTaken: ts.titleAtTaken,
         startedAt: ts.startedAt,
         finishedAt: ts.finishedAt,
@@ -195,7 +196,7 @@ export class ParentDashboardService {
 
     const testSessions: TestSession[] = await this.testSessionRepository.find({
       where: { student: { id: studentId } },
-      relations: ['student', 'sttWordResults'],
+      relations: ['student', 'sttWordResults', 'story', 'story.level'],
       order: { startedAt: 'DESC' },
     });
 
@@ -207,6 +208,7 @@ export class ParentDashboardService {
           username: ts.student.username,
           fullName: ts.student.fullName,
         },
+        levelFullName: ts.story?.level.fullName ?? '-',
         titleAtTaken: ts.titleAtTaken,
         startedAt: ts.startedAt,
         finishedAt: ts.finishedAt,
@@ -242,7 +244,7 @@ export class ParentDashboardService {
     const testSession: TestSession | null =
       await this.testSessionRepository.findOne({
         where: { id: testSessionId, student: { id: studentId } },
-        relations: ['student', 'sttWordResults'],
+        relations: ['student', 'sttWordResults', 'story', 'story.level'],
       });
     if (!testSession) {
       throw new NotFoundException(
@@ -257,6 +259,7 @@ export class ParentDashboardService {
         username: testSession.student.username,
         fullName: testSession.student.fullName,
       },
+      levelFullName: testSession.story?.level.fullName ?? '-',
       titleAtTaken: testSession.titleAtTaken,
       startedAt: testSession.startedAt,
       finishedAt: testSession.finishedAt,
