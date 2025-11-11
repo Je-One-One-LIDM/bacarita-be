@@ -20,6 +20,77 @@ export class OpenRouterService {
     this.clientModel = 'minimax/minimax-m2:free';
   }
 
+  public async generateQuestionsForPreTest(): Promise<string[]> {
+    const prompt: string = `
+      You are a children's dyslexia language therapist and reading specialist.
+
+      Goal:
+      Create a **Pretest Reading Task** to evaluate a student's current reading ability before assigning them a level (Level 1–5).
+
+      The pretest should sample skills from all levels:
+      - Level 1: Letter discrimination (visual reversal and phoneme pairing)
+      - Level 2: Open syllable patterns (KV)
+      - Level 3: Simple two-syllable words
+      - Level 4: Basic sentences (S-P, S-P-O)
+      - Level 5: Simple narrative sentences (chronological or descriptive)
+
+      Guidelines:
+      - Language: Indonesian
+      - Each prompt should be short and phonetically simple
+      - No punctuation, no complex words
+      - Prefer real or high-frequency words
+      - Total 15 items across 5 difficulty tiers
+        - 3 items from each level's skill set
+      - Each must be **5 words or fewer**
+      - Each must be **phonetically simple and rhythmically clear**
+      - Prefer **high-frequency or early-reading words** (e.g., “Rafi pakai sepatu hujan”)
+      - Avoid abstract or compound sentences
+      - Avoid punctuation and special characters
+      - Include a mix of:
+        - **Whole-word repetition prompts** (for sight word recall)
+        - **Short phrase reconstruction** (for context recall)
+        - **Sound-pattern reinforcement** (for phonological awareness)
+
+      Expected Output:
+      Return ONLY a **JSON array of strings** with no extra explanation or formatting.
+
+      Example Output:
+      [ "b d p q", "ma ki ku", "pa pi pu", "mama", "buku", "Ibu masak", "Budi tendang bola", "Ibu pergi ke pasar"]
+      `;
+
+    try {
+      const completion: OpenAI.Chat.ChatCompletion =
+        await this.client.chat.completions.create({
+          model: this.clientModel,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.5,
+        });
+
+      const content: string =
+        completion.choices[0].message
+          ?.content!.replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim() ?? '[]';
+
+      const parsed: string[] = JSON.parse(content) as string[];
+      if (
+        Array.isArray(parsed) &&
+        parsed.every((item) => typeof item === 'string')
+      ) {
+        return parsed;
+      }
+
+      throw new InternalServerErrorException(
+        'Gagal menghasilkan pertanyaan, silahkan coba lagi. (OpenRouter Error)',
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(
+        'Gagal menghasilkan pertanyaan, silahkan coba lagi.',
+      );
+    }
+  }
+
   public async generateQuestionsFromStoryPassage(
     passage: string,
   ): Promise<string[]> {

@@ -263,12 +263,21 @@ export class TestSessionService extends ITransactionalService {
         }
 
         // Initialize STT Word Results for the Test Session
-        const questions: string[] =
-          await this.openRouterService.generateQuestionsFromStoryPassage(
-            testSession.passageAtTaken,
-          );
-
         const questionsResponseDTO: STTQuestionResponseDTO[] = [];
+        let questions: string[];
+
+        if (testSession.story?.level.no !== 0) {
+          // Not Pre-Test
+          questions =
+            await this.openRouterService.generateQuestionsFromStoryPassage(
+              testSession.passageAtTaken,
+            );
+        } else {
+          // Pre-Test
+          questions =
+            await this.openRouterService.generateQuestionsForPreTest();
+        }
+
         for (const question of questions) {
           const sttWordResult: STTWordResult = sttWordResultRepo.create({
             id: 'STTWORDRESULT-' + this.tokenGeneratorService.randomUUIDV7(),
@@ -370,6 +379,13 @@ export class TestSessionService extends ITransactionalService {
     testSession.score = testSession.calculateScore(sttWordResults);
     testSession.medal = testSession.determineMedal();
     testSession.finishedAt = new Date();
+
+    // Handle Pre-Test (Level 0) completion and auto-leveling thingy
+    const isPreTest: boolean = testSession.story?.level.no === 0;
+    if (isPreTest) {
+      await this.handlePreTestCompletion(testSession, studentId);
+    }
+
     // Update Level Progress medal count based on the medal achieved in this Test Session
     const levelProgress: LevelProgress | undefined =
       testSession.story?.level.levelProgresses.find(
@@ -575,5 +591,87 @@ export class TestSessionService extends ITransactionalService {
     }
 
     return testSession;
+  }
+
+  /**
+   * Handle Pre-Test (Level 0) completion and automatically unlock/skip levels based on score
+   */
+  private async handlePreTestCompletion(
+    testSession: TestSession,
+    studentId: string,
+  ): Promise<void> {
+    const score: number = testSession.score;
+    let targetLevel: number = 1; // Default: start from Level 1
+
+    // Determine target level based on score
+    if (score >= 80) {
+      targetLevel = 5;
+    } else if (score >= 60) {
+      targetLevel = 4;
+    } else if (score >= 40) {
+      targetLevel = 3;
+    } else if (score >= 20) {
+      targetLevel = 2;
+    } else {
+      targetLevel = 1;
+    }
+
+    // If score is low (< 70), no need to skip levels, student starts from Level 1
+    if (targetLevel === 1) {
+      this.logger.info(
+        `Student ${studentId} scored ${score} on pre-test. Starting from Level 1.`,
+      );
+      return;
+    }
+
+    // Skip levels and unlock target level
+    await this.withTransaction<void>(async (manager: EntityManager) => {
+      const levelRepo: Repository<Level> = manager.getRepository(Level);
+      const levelProgressRepo: Repository<LevelProgress> =
+        manager.getRepository(LevelProgress);
+
+      // Get all levels that need to be processed (1 to targetLevel)
+      const levels: Level[] = await levelRepo.find({
+        where: { isBonusLevel: false },
+        order: { no: 'ASC' },
+      });
+
+      for (const level of levels) {
+        if (level.no === 0) continue;
+
+        if (level.no <= targetLevel) {
+          // Find or create level progress
+          let levelProgress: LevelProgress | null =
+            await levelProgressRepo.findOne({
+              where: {
+                student_id: studentId,
+                level_id: level.id,
+              },
+            });
+
+          if (!levelProgress) {
+            levelProgress = levelProgressRepo.create({
+              student_id: studentId,
+              level_id: level.id,
+            });
+          }
+
+          // Unlock the target level
+          levelProgress.isUnlocked = true;
+
+          // Mark levels before target as completed and skipped
+          if (level.no < targetLevel) {
+            levelProgress.isCompleted = true;
+            levelProgress.isSkipped = true;
+          }
+
+          await levelProgressRepo.save(levelProgress);
+        }
+      }
+
+      this.logger.info(
+        `Student ${studentId} scored ${score} on pre-test. Skipped to Level ${targetLevel}.`,
+      );
+    });
   }
 }

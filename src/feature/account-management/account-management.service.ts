@@ -127,25 +127,32 @@ export class AccountManagementService extends ITransactionalService {
 
       const savedStudent: Student = await studentRepo.save(student);
 
+      // if jumpLevelTo is provided, unlock and/or skip levels accordingly
       if (jumpLevelTo) {
         const levels: Level[] = await levelRepo.find({
           where: { isBonusLevel: false },
           order: { no: 'ASC' },
         });
 
+        // Filter out Level 0 (pre-test)
+        const regularLevels: Level[] = levels.filter((l) => l.no > 0);
+
         if (
           jumpLevelTo < 1 ||
-          jumpLevelTo > levels.length ||
+          jumpLevelTo > regularLevels.length ||
           jumpLevelTo === 0
         ) {
           throw new BadRequestException(
-            `Loncatan level tidak valid. Harus di antara 1 hingga ${levels.length}`,
+            `Loncatan level tidak valid. Harus di antara 1 hingga ${regularLevels.length}`,
           );
         }
 
         const maxLevelToUnlock: number = jumpLevelTo;
         const levelToUnlock: number = jumpLevelTo + 1;
         for (const level of levels) {
+          // Skip Level 0 (pre-test) - it should always be available
+          if (level.no === 0) continue;
+
           if (level.no <= levelToUnlock) {
             const levelProgress: LevelProgress = levelProgressRepo.create({
               student_id: savedStudent.id,

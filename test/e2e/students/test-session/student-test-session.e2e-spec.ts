@@ -1882,6 +1882,7 @@ describe('Student Test Session (e2e)', () => {
     const levels = levelsResponse.body.data;
     const level1 = levels.find((l: any) => l.no === 1);
     expect(level1.isUnlocked).toBe(true);
+    expect(level1.maxPoints).toBe(15);
 
     const story1 = level1.stories[0];
 
@@ -1932,7 +1933,7 @@ describe('Student Test Session (e2e)', () => {
     const level1AfterFirst = levelsAfterFirst.body.data.find(
       (l: any) => l.no === 1,
     );
-    expect(level1AfterFirst.requiredPoints).toBe(4);
+    expect(level1AfterFirst.requiredPoints).toBe(11);
     expect(level1AfterFirst.isCompleted).toBe(false);
     expect(level1AfterFirst.bronzeCount).toBe(1);
     expect(level1AfterFirst.silverCount).toBe(0);
@@ -1985,7 +1986,7 @@ describe('Student Test Session (e2e)', () => {
     const level1AfterSecond = levelsAfterSecond.body.data.find(
       (l: any) => l.no === 1,
     );
-    expect(level1AfterSecond.requiredPoints).toBe(2); // 5 - 3
+    expect(level1AfterSecond.requiredPoints).toBe(9); // 12 - 3
     expect(level1AfterSecond.bronzeCount).toBe(0); // Bronze replaced
     expect(level1AfterSecond.silverCount).toBe(0);
     expect(level1AfterSecond.goldCount).toBe(1); // Gold added
@@ -2062,8 +2063,8 @@ describe('Student Test Session (e2e)', () => {
     const level1AfterFirst = levelsAfterFirst.body.data.find(
       (l: any) => l.no === 1,
     );
-    expect(level1AfterFirst.progress).toBe(50);
-    expect(level1AfterFirst.requiredPoints).toBe(2);
+    expect(level1AfterFirst.progress).toBe(20);
+    expect(level1AfterFirst.requiredPoints).toBe(9);
     expect(level1AfterFirst.isCompleted).toBe(false);
     expect(level1AfterFirst.bronzeCount).toBe(0);
     expect(level1AfterFirst.silverCount).toBe(0);
@@ -2117,8 +2118,8 @@ describe('Student Test Session (e2e)', () => {
       (l: any) => l.no === 1,
     );
 
-    expect(level1AfterSecond.progress).toBe(50);
-    expect(level1AfterSecond.requiredPoints).toBe(2); // 5 - 3
+    expect(level1AfterSecond.progress).toBe(20);
+    expect(level1AfterSecond.requiredPoints).toBe(9); // 12 - 3
     expect(level1AfterSecond.bronzeCount).toBe(0);
     expect(level1AfterSecond.silverCount).toBe(0);
     expect(level1AfterSecond.goldCount).toBe(1); // Gold remains
@@ -2171,8 +2172,8 @@ describe('Student Test Session (e2e)', () => {
       (l: any) => l.no === 1,
     );
 
-    expect(level1AfterThird.progress).toBe(50);
-    expect(level1AfterThird.requiredPoints).toBe(2); // 5 - 3
+    expect(level1AfterThird.progress).toBe(20);
+    expect(level1AfterThird.requiredPoints).toBe(9); // 12 - 3
     expect(level1AfterThird.bronzeCount).toBe(0);
     expect(level1AfterThird.silverCount).toBe(0);
     expect(level1AfterThird.goldCount).toBe(1); // Gold remains
@@ -2225,8 +2226,8 @@ describe('Student Test Session (e2e)', () => {
       (l: any) => l.no === 1,
     );
 
-    expect(level1AfterFourth.progress).toBe(50);
-    expect(level1AfterFourth.requiredPoints).toBe(2); // 5 - 3
+    expect(level1AfterFourth.progress).toBe(20);
+    expect(level1AfterFourth.requiredPoints).toBe(9); // 12 - 3
     expect(level1AfterFourth.bronzeCount).toBe(0);
     expect(level1AfterFourth.silverCount).toBe(0);
     expect(level1AfterFourth.goldCount).toBe(1); // Gold remains
@@ -2320,7 +2321,7 @@ describe('Student Test Session (e2e)', () => {
     expect(finishedSession.medal).toBe(StoryMedal.GOLD);
     expect(finishedSession.score).toBeGreaterThanOrEqual(80);
 
-    // Check level progress - should have 1 gold medal and 3 required points (5 - 2 for gold)
+    // Check level progress - should have 1 gold medal and 0 required points (5 - 3 for gold)
     const levelsAfter = await requestTestAgent
       .get('/students/levels')
       .set('Authorization', `Bearer ${token}`)
@@ -2331,7 +2332,7 @@ describe('Student Test Session (e2e)', () => {
     expect(level2After.goldCount).toBe(1);
     expect(level2After.silverCount).toBe(0);
     expect(level2After.bronzeCount).toBe(0);
-    expect(level2After.requiredPoints).toBe(4); // 6 - 2 (gold medal points)
+    expect(level2After.requiredPoints).toBe(2); // 5 - 3 (gold medal points)
     expect(level2After.isCompleted).toBe(false);
   });
 
