@@ -119,42 +119,41 @@ describe('Student Dashboard (e2e)', () => {
     const body = response.body.data;
     expect(body).toBeDefined();
     expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBe(3);
-    expect(body[0].stories.length).toBe(2);
-    expect(body[1].stories.length).toBe(3);
-    expect(body[2].stories.length).toBe(3);
+    expect(body.length).toBe(6);
+    expect(body[0].stories.length).toBe(1);
+    expect(body[1].stories.length).toBe(5);
+    expect(body[2].stories.length).toBe(2);
 
-    const level1 = body[0];
-    expect(level1.no).toBe(1);
-    expect(level1.name).toBe('Lala dan Balon Merah');
-    expect(level1.fullName).toBe('Level 1. Lala dan Balon Merah');
-    expect(level1.isBonusLevel).toBe(false);
-    expect(level1.maxPoints).toBe(6);
-    expect(level1.isCompleted).toBe(false);
-    expect(level1.isSkipped).toBe(false);
-    expect(level1.isUnlocked).toBe(true);
-    expect(level1.requiredPoints).toBe(5);
-    expect(level1.goldCount).toBe(0);
-    expect(level1.silverCount).toBe(0);
-    expect(level1.bronzeCount).toBe(0);
-    expect(level1.progress).toBe(0);
+    const level0 = body[0];
+    const level1 = body[1];
+    expect(level0.no).toBe(0);
+    expect(level0.name).toBe('Pre-Test: Tes Kemampuan Awal');
+    expect(level0.fullName).toBe('Level 0. Pre-Test: Tes Kemampuan Awal');
+    expect(level0.isBonusLevel).toBe(false);
+    expect(level0.maxPoints).toBe(3);
+    expect(level0.isCompleted).toBe(false);
+    expect(level0.isSkipped).toBe(false);
+    expect(level0.isUnlocked).toBe(true);
+    expect(level0.goldCount).toBe(0);
+    expect(level0.silverCount).toBe(0);
+    expect(level0.bronzeCount).toBe(0);
+    expect(level0.progress).toBe(0);
 
-    const story1_level1 = level1.stories[0];
-    expect(story1_level1).toBeDefined();
-    expect(story1_level1.title).toBe('Lala dan Balon Merah');
-    expect(story1_level1.imageUrl).toBe(
+    const story1_level0 = level0.stories[0];
+    expect(story1_level0).toBeDefined();
+    expect(story1_level0.title).toBe('Tes Kemampuan Membaca');
+    expect(story1_level0.imageUrl).toBe(
       `${process.env.APP_URL}/public/placeholder.webp`,
     );
+    expect(story1_level0.isGoldMedal).toBe(false);
+    expect(story1_level0.isSilverMedal).toBe(false);
+    expect(story1_level0.isBronzeMedal).toBe(false);
+    const story1_level1 = level1.stories[0];
+    expect(story1_level1).toBeDefined();
+    expect(story1_level1.imageUrl).toBeNull();
     expect(story1_level1.isGoldMedal).toBe(false);
     expect(story1_level1.isSilverMedal).toBe(false);
     expect(story1_level1.isBronzeMedal).toBe(false);
-    const story2_level1 = level1.stories[1];
-    expect(story2_level1).toBeDefined();
-    expect(story2_level1.title).toBe('Lala dan Balon Merah 2');
-    expect(story2_level1.imageUrl).toBeNull();
-    expect(story2_level1.isGoldMedal).toBe(false);
-    expect(story2_level1.isSilverMedal).toBe(false);
-    expect(story2_level1.isBronzeMedal).toBe(false);
   });
 
   it('GET /students/levels/:id | must return student level and its correct data', async () => {
@@ -171,7 +170,7 @@ describe('Student Dashboard (e2e)', () => {
       .get('/students/levels')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    const levelId = levelIdResponse.body.data[0].id;
+    const levelId = levelIdResponse.body.data[1].id;
 
     const response = await requestTestAgent
       .get(`/students/levels/${levelId}`)
@@ -182,14 +181,14 @@ describe('Student Dashboard (e2e)', () => {
 
     const level = body;
     expect(level.no).toBe(1);
-    expect(level.name).toBe('Lala dan Balon Merah');
-    expect(level.fullName).toBe('Level 1. Lala dan Balon Merah');
+    expect(level.name).toBe('Dasar Vokal dan Konsonan');
+    expect(level.fullName).toBe('Level 1. Dasar Vokal dan Konsonan');
     expect(level.isBonusLevel).toBe(false);
-    expect(level.maxPoints).toBe(6);
+    expect(level.maxPoints).toBe(15);
     expect(level.isUnlocked).toBe(true);
     expect(level.isSkipped).toBe(false);
     expect(level.isCompleted).toBe(false);
-    expect(level.requiredPoints).toBe(5);
+    expect(level.requiredPoints).toBe(12);
     expect(level.goldCount).toBe(0);
     expect(level.silverCount).toBe(0);
     expect(level.bronzeCount).toBe(0);
@@ -197,17 +196,17 @@ describe('Student Dashboard (e2e)', () => {
 
     const story1_level = level.stories[0];
     expect(story1_level).toBeDefined();
-    expect(story1_level.title).toBe('Lala dan Balon Merah');
-    expect(story1_level.imageUrl).toBe(
-      `${process.env.APP_URL}/public/placeholder.webp`,
-    );
+    expect(story1_level.title).toBe('Bacaan 1: Dasar Vokal dan Konsonan');
+    expect(story1_level.imageUrl).toBeNull();
     expect(story1_level.isGoldMedal).toBe(false);
     expect(story1_level.isSilverMedal).toBe(false);
     expect(story1_level.isBronzeMedal).toBe(false);
     const story2_level = level.stories[1];
     expect(story2_level).toBeDefined();
-    expect(story2_level.title).toBe('Lala dan Balon Merah 2');
-    expect(story2_level.imageUrl).toBeNull();
+    expect(story2_level.title).toBe('Bacaan 2: Bentuk Huruf');
+    expect(story2_level.imageUrl).toBe(
+      `${process.env.APP_URL}/public/placeholder.webp`,
+    );
     expect(story2_level.isGoldMedal).toBe(false);
     expect(story2_level.isSilverMedal).toBe(false);
     expect(story2_level.isBronzeMedal).toBe(false);
