@@ -110,7 +110,6 @@ export class TestSession {
     return 0;
   }
 
-  // TODO: calculate with distracted eye events
   public calculateScore(
     sttWordResults: STTWordResult[],
     distractedEyeEvents: DistractedEyeEvent[],
