@@ -26,6 +26,7 @@ export class OpenRouterService {
 
       Goal:
       Create a **Pretest Reading Task** to evaluate a student's current reading ability before assigning them a level (Level 1–5).
+      The students is in early elementary grades (ages 6–12) and may have dyslexia.
 
       The pretest should sample skills from all levels:
       - Level 1: Letter discrimination (visual reversal and phoneme pairing)
@@ -46,6 +47,7 @@ export class OpenRouterService {
       - Prefer **high-frequency or early-reading words** (e.g., “Rafi pakai sepatu hujan”)
       - Avoid abstract or compound sentences
       - Avoid punctuation and special characters
+      - Avoid vulgar, sensitive, or culturally inappropriate content
       - Include a mix of:
         - **Whole-word repetition prompts** (for sight word recall)
         - **Short phrase reconstruction** (for context recall)
@@ -114,6 +116,7 @@ export class OpenRouterService {
       - Avoid abstract or compound sentences
       - Avoid new vocabulary not present in the story
       - Avoid punctuation and special characters
+      - Avoid vulgar, sensitive, or culturally inappropriate content
       - Include a mix of:
         - **Whole-word repetition prompts** (for sight word recall)
         - **Short phrase reconstruction** (for context recall)
