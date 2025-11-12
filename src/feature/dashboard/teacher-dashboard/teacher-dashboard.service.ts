@@ -2,17 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { In, Repository } from 'typeorm';
+import { LevelProgress } from '../../levels/entities/level-progress.entity';
+import { DistractionEventResponseDTO } from '../../test-session/dtos/distraction-event-response.dto';
+import { DistractedEyeEvent } from '../../test-session/entities/distracted-eye-event.entity';
+import { STTWordResult } from '../../test-session/entities/stt-word-result.entity';
+import { TestSession } from '../../test-session/entities/test-session.entity';
 import { Student } from '../../users/entities/student.entity';
 import { Teacher } from '../../users/entities/teacher.entity';
-import { TestSession } from '../../test-session/entities/test-session.entity';
-import { STTWordResult } from '../../test-session/entities/stt-word-result.entity';
-import { LevelProgress } from '../../levels/entities/level-progress.entity';
 import {
+  LevelProgressDTO,
+  STTWordResultDTO,
+  TeacherDashboardOverviewDTO,
   TeacherDashboardStudentDTO,
   TeacherDashboardTestSessionDTO,
-  TeacherDashboardOverviewDTO,
-  STTWordResultDTO,
-  LevelProgressDTO,
 } from './dtos/teacher-dashboard.dto';
 
 @Injectable()
@@ -44,7 +46,14 @@ export class TeacherDashboardService {
     const allTestSessions: TestSession[] = studentIds.length
       ? await this.testSessionRepository.find({
           where: { student: { id: In(studentIds) } },
-          relations: ['student', 'sttWordResults', 'story', 'story.level'],
+          relations: [
+            'student',
+            'sttWordResults',
+            'story',
+            'story.level',
+            'distractedEyeEvents',
+            'distractedEyeEventsSummary',
+          ],
           order: { startedAt: 'DESC' },
         })
       : [];
@@ -88,6 +97,40 @@ export class TeacherDashboardService {
             createdAt: result.createdAt,
           }),
         ),
+        distractedEyeEvents: (ts.distractedEyeEvents || []).map(
+          (event: DistractedEyeEvent): DistractionEventResponseDTO => ({
+            id: event.id,
+            distractionType: event.distractionType,
+            triggerDurationMs: event.triggerDurationMs,
+            occurredAtWord: event.occurredAtWord,
+            createdAt: event.createdAt,
+            updatedAt: event.updatedAt,
+          }),
+        ),
+        distractedEyeEventsSummary: ts.distractedEyeEventsSummary
+          ? {
+              id: ts.distractedEyeEventsSummary.id,
+              totalSessionDurationSec:
+                ts.distractedEyeEventsSummary.totalSessionDurationSec,
+              timeBreakdownFocus:
+                ts.distractedEyeEventsSummary.timeBreakdownFocus,
+              timeBreakdownTurning:
+                ts.distractedEyeEventsSummary.timeBreakdownTurning,
+              timeBreakdownGlance:
+                ts.distractedEyeEventsSummary.timeBreakdownGlance,
+              timeBreakdownNotDetected:
+                ts.distractedEyeEventsSummary.timeBreakdownNotDetected,
+              turningTriggersCount:
+                ts.distractedEyeEventsSummary.turningTriggersCount,
+              glanceTriggersCount:
+                ts.distractedEyeEventsSummary.glanceTriggersCount,
+              avgPoseVariance: ts.distractedEyeEventsSummary.avgPoseVariance,
+              longFixationCount:
+                ts.distractedEyeEventsSummary.longFixationCount,
+              createdAt: ts.distractedEyeEventsSummary.createdAt,
+              updatedAt: ts.distractedEyeEventsSummary.updatedAt,
+            }
+          : undefined,
       }),
     );
 
@@ -196,7 +239,14 @@ export class TeacherDashboardService {
 
     const testSessions: TestSession[] = await this.testSessionRepository.find({
       where: { student: { id: studentId } },
-      relations: ['student', 'sttWordResults', 'story', 'story.level'],
+      relations: [
+        'student',
+        'sttWordResults',
+        'story',
+        'story.level',
+        'distractedEyeEvents',
+        'distractedEyeEventsSummary',
+      ],
       order: { startedAt: 'DESC' },
     });
 
@@ -225,6 +275,40 @@ export class TeacherDashboardService {
             createdAt: result.createdAt,
           }),
         ),
+        distractedEyeEvents: (ts.distractedEyeEvents || []).map(
+          (event: DistractedEyeEvent): DistractionEventResponseDTO => ({
+            id: event.id,
+            distractionType: event.distractionType,
+            triggerDurationMs: event.triggerDurationMs,
+            occurredAtWord: event.occurredAtWord,
+            createdAt: event.createdAt,
+            updatedAt: event.updatedAt,
+          }),
+        ),
+        distractedEyeEventsSummary: ts.distractedEyeEventsSummary
+          ? {
+              id: ts.distractedEyeEventsSummary.id,
+              totalSessionDurationSec:
+                ts.distractedEyeEventsSummary.totalSessionDurationSec,
+              timeBreakdownFocus:
+                ts.distractedEyeEventsSummary.timeBreakdownFocus,
+              timeBreakdownTurning:
+                ts.distractedEyeEventsSummary.timeBreakdownTurning,
+              timeBreakdownGlance:
+                ts.distractedEyeEventsSummary.timeBreakdownGlance,
+              timeBreakdownNotDetected:
+                ts.distractedEyeEventsSummary.timeBreakdownNotDetected,
+              turningTriggersCount:
+                ts.distractedEyeEventsSummary.turningTriggersCount,
+              glanceTriggersCount:
+                ts.distractedEyeEventsSummary.glanceTriggersCount,
+              avgPoseVariance: ts.distractedEyeEventsSummary.avgPoseVariance,
+              longFixationCount:
+                ts.distractedEyeEventsSummary.longFixationCount,
+              createdAt: ts.distractedEyeEventsSummary.createdAt,
+              updatedAt: ts.distractedEyeEventsSummary.updatedAt,
+            }
+          : undefined,
       }),
     );
   }
@@ -246,7 +330,14 @@ export class TeacherDashboardService {
     const testSession: TestSession | null =
       await this.testSessionRepository.findOne({
         where: { id: testSessionId, student: { id: studentId } },
-        relations: ['student', 'sttWordResults', 'story', 'story.level'],
+        relations: [
+          'student',
+          'sttWordResults',
+          'story',
+          'story.level',
+          'distractedEyeEvents',
+          'distractedEyeEventsSummary',
+        ],
       });
     if (!testSession) {
       throw new NotFoundException(
@@ -278,6 +369,41 @@ export class TeacherDashboardService {
           createdAt: result.createdAt,
         }),
       ),
+      distractedEyeEvents: (testSession.distractedEyeEvents || []).map(
+        (event: DistractedEyeEvent): DistractionEventResponseDTO => ({
+          id: event.id,
+          distractionType: event.distractionType,
+          triggerDurationMs: event.triggerDurationMs,
+          occurredAtWord: event.occurredAtWord,
+          createdAt: event.createdAt,
+          updatedAt: event.updatedAt,
+        }),
+      ),
+      distractedEyeEventsSummary: testSession.distractedEyeEventsSummary
+        ? {
+            id: testSession.distractedEyeEventsSummary.id,
+            totalSessionDurationSec:
+              testSession.distractedEyeEventsSummary.totalSessionDurationSec,
+            timeBreakdownFocus:
+              testSession.distractedEyeEventsSummary.timeBreakdownFocus,
+            timeBreakdownTurning:
+              testSession.distractedEyeEventsSummary.timeBreakdownTurning,
+            timeBreakdownGlance:
+              testSession.distractedEyeEventsSummary.timeBreakdownGlance,
+            timeBreakdownNotDetected:
+              testSession.distractedEyeEventsSummary.timeBreakdownNotDetected,
+            turningTriggersCount:
+              testSession.distractedEyeEventsSummary.turningTriggersCount,
+            glanceTriggersCount:
+              testSession.distractedEyeEventsSummary.glanceTriggersCount,
+            avgPoseVariance:
+              testSession.distractedEyeEventsSummary.avgPoseVariance,
+            longFixationCount:
+              testSession.distractedEyeEventsSummary.longFixationCount,
+            createdAt: testSession.distractedEyeEventsSummary.createdAt,
+            updatedAt: testSession.distractedEyeEventsSummary.updatedAt,
+          }
+        : undefined,
     };
 
     return testSessionDTO;

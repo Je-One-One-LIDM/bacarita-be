@@ -1,4 +1,6 @@
 import { StoryMedal } from 'src/feature/levels/enum/story-medal.enum';
+import { DistractionEventResponseDTO } from 'src/feature/test-session/dtos/distraction-event-response.dto';
+import { DistractionSummaryResponseDTO } from 'src/feature/test-session/dtos/distraction-summary-response.dto';
 
 export class STTWordResultDTO {
   id: string;
@@ -62,6 +64,8 @@ export class TeacherDashboardTestSessionDTO {
   score: number;
   isCompleted: boolean;
   sttWordResults: STTWordResultDTO[];
+  distractedEyeEvents: DistractionEventResponseDTO[];
+  distractedEyeEventsSummary?: DistractionSummaryResponseDTO;
 }
 
 export class TeacherDashboardOverviewDTO {
