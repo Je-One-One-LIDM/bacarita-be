@@ -382,7 +382,6 @@ export class TestSessionService extends ITransactionalService {
         `Sesi tes dengan ID ${testSessionId} sudah selesai`,
       );
     }
-    // TODO: get distracted eye events
     const sttWordResults: STTWordResult[] =
       await this.sttWordResultRepository.find({
         where: { testSession: { id: testSessionId } },
