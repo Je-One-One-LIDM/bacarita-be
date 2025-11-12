@@ -39,9 +39,6 @@ COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modul
 
 COPY --chown=node:node . .
 
-# Run database migrations before building the project
-RUN npm run migration:run
-
 # Run the build command which creates the production bundle
 RUN npm run build
 
