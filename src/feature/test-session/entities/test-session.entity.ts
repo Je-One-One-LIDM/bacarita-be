@@ -140,12 +140,7 @@ export class TestSession {
 
     adScore = 100 - distractedCount / (textLength * 0.15);
     amsScore = amsScore / sttWordResults.length;
-    console.log('AD SCORE:', adScore);
-    console.log('AMS SCORE:', amsScore);
-    console.log('TEXT LENGTH:', textLength);
-    console.log('distracted COUNT:', distractedCount);
     avgScore = amsScore * 0.6 + adScore * 0.4;
-    console.log('AVG SCORE:', avgScore);
     return avgScore;
   }
 
