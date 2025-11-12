@@ -10,6 +10,7 @@ import mail from './config/app/mail.config';
 import { dataSourceOptions } from './config/database/typeorm.config';
 import environmentValidation from './config/environment.validation';
 import { createPinoLoggerOptions } from './core/logger/pino-logger.factory';
+import { DatabaseSeederModule } from './database/database-seeder.module';
 import { AccountManagementModule } from './feature/account-management/account-management.module';
 import { AuthModule } from './feature/auth/auth.module';
 import { LevelsModule } from './feature/levels/levels.module';
@@ -58,6 +59,8 @@ const env: string = process.env.NODE_ENV || 'development';
     AiModule,
 
     DashboardModule,
+
+    DatabaseSeederModule,
   ],
 })
 export class AppModule {}
