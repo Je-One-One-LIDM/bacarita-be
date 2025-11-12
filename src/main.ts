@@ -26,6 +26,6 @@ async function bootstrap(): Promise<void> {
   await app.listen(process.env.APP_PORT ?? 3000);
 }
 bootstrap().catch((error) => {
-  logger.error('Error during application bootstrap:', error);
+  logger.error('Error during application bootstrapz:', error);
   process.exit(1);
 });
