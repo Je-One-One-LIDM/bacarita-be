@@ -64,4 +64,4 @@ COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 RUN mkdir -p /logs && chown node:node /logs
 
 # Start the server using the production build
-CMD [ "node", "dist/main" ]
+CMD [ "sh", "-c", "npm run migration:run:prod && node dist/main" ]
