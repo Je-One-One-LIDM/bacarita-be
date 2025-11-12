@@ -8,10 +8,14 @@ import {
   Entity,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DistractedEyeEvent } from './distracted-eye-event.entity';
+import { DistractedEyeEventsSummary } from './distracted-eye-events-summary.entity';
 import { STTWordResult } from './stt-word-result.entity';
+import { DistractionType } from '../enums/distraction-type.enum';
 
 @Entity('test_sessions')
 export class TestSession {
@@ -34,6 +38,18 @@ export class TestSession {
     (sttWordResult: STTWordResult) => sttWordResult.testSession,
   )
   sttWordResults: STTWordResult[];
+
+  @OneToMany(
+    () => DistractedEyeEvent,
+    (distractedEyeEvent: DistractedEyeEvent) => distractedEyeEvent.testSession,
+  )
+  distractedEyeEvents: DistractedEyeEvent[];
+
+  @OneToOne(
+    () => DistractedEyeEventsSummary,
+    (summary: DistractedEyeEventsSummary) => summary.testSession,
+  )
+  distractedEyeEventsSummary?: DistractedEyeEventsSummary;
 
   @Column()
   titleAtTaken: string;
@@ -94,20 +110,42 @@ export class TestSession {
     return 0;
   }
 
-  public calculateScore(sttWordResults: STTWordResult[]): number {
-    let score: number = 0;
+  // TODO: calculate with distracted eye events
+  public calculateScore(
+    sttWordResults: STTWordResult[],
+    distractedEyeEvents: DistractedEyeEvent[],
+    textLength: number,
+  ): number {
+    let amsScore: number = 0;
+    let adScore: number = 0;
     let avgScore: number = 0;
-    if (sttWordResults.length === 0) {
-      return score;
-    }
 
     for (const result of sttWordResults) {
       if (result.testSession.id === this.id) {
-        score += result.accuracy ?? 0;
+        amsScore += result.accuracy ?? 0;
       }
     }
 
-    avgScore = score / sttWordResults.length;
+    let distractedCount: number = 0;
+    for (const eyeEvent of distractedEyeEvents) {
+      if (eyeEvent.testSession.id === this.id) {
+        if (
+          eyeEvent.distractionType !== DistractionType.FOCUS &&
+          eyeEvent.distractionType !== DistractionType.NOT_DETECTED
+        ) {
+          distractedCount += 1;
+        }
+      }
+    }
+
+    adScore = 100 - distractedCount / (textLength * 0.15);
+    amsScore = amsScore / sttWordResults.length;
+    console.log('AD SCORE:', adScore);
+    console.log('AMS SCORE:', amsScore);
+    console.log('TEXT LENGTH:', textLength);
+    console.log('distracted COUNT:', distractedCount);
+    avgScore = amsScore * 0.6 + adScore * 0.4;
+    console.log('AVG SCORE:', avgScore);
     return avgScore;
   }
 

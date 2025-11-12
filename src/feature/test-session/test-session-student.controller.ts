@@ -15,6 +15,10 @@ import { AuthRole } from '../auth/enums/auth.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { ICurrentUser } from '../auth/interfaces/current-user.interfaces';
 import { AnswerSTTQuestionDTO } from './dtos/answer-stt-question.dto';
+import { CreateDistractionEventDTO } from './dtos/create-distraction-event.dto';
+import { CreateDistractionSummaryDTO } from './dtos/create-distraction-summary.dto';
+import { DistractionEventResponseDTO } from './dtos/distraction-event-response.dto';
+import { DistractionSummaryResponseDTO } from './dtos/distraction-summary-response.dto';
 import { StartNewTestSessionDTO } from './dtos/start-new-test-session.dto';
 import { STTAnsweredQuestionDTO } from './dtos/stt-answered-question.dto';
 import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
@@ -156,6 +160,52 @@ export class StudentTestSessionController {
       HttpStatus.OK,
       `Sesi tes dengan ID ${testSessionId} berhasil diselesaikan`,
       finishedTestSession,
+    );
+  }
+
+  @Post(':id/distraction')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.CREATED)
+  public async createDistractionEvent(
+    @Param('id') testSessionId: string,
+    @Body() createDistractionEventDTO: CreateDistractionEventDTO,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<DataResponse<DistractionEventResponseDTO>> {
+    const distractionEvent: DistractionEventResponseDTO =
+      await this.testSessionService.createDistractionEvent(
+        testSessionId,
+        currentUser.id,
+        createDistractionEventDTO,
+      );
+
+    return new DataResponse<DistractionEventResponseDTO>(
+      HttpStatus.CREATED,
+      `Berhasil mencatat DistractionEyeEvent pada sesi tes dengan ID ${testSessionId}`,
+      distractionEvent,
+    );
+  }
+
+  @Post(':id/distraction/summary')
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.STUDENT)
+  @HttpCode(HttpStatus.CREATED)
+  public async createDistractionSummary(
+    @Param('id') testSessionId: string,
+    @Body() createDistractionSummaryDTO: CreateDistractionSummaryDTO,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<DataResponse<DistractionSummaryResponseDTO>> {
+    const distractionSummary: DistractionSummaryResponseDTO =
+      await this.testSessionService.createDistractionSummary(
+        testSessionId,
+        currentUser.id,
+        createDistractionSummaryDTO,
+      );
+
+    return new DataResponse<DistractionSummaryResponseDTO>(
+      HttpStatus.CREATED,
+      `Berhasil membuat ringkasan DistractionEyeEventSummary untuk sesi tes dengan ID ${testSessionId}`,
+      distractionSummary,
     );
   }
 }

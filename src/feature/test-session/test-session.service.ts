@@ -16,9 +16,15 @@ import { StoryMedal } from '../levels/enum/story-medal.enum';
 import { Student } from '../users/entities/student.entity';
 import { StudentService } from '../users/student/student.service';
 import { AnswerSTTQuestionDTO } from './dtos/answer-stt-question.dto';
+import { CreateDistractionEventDTO } from './dtos/create-distraction-event.dto';
+import { CreateDistractionSummaryDTO } from './dtos/create-distraction-summary.dto';
+import { DistractionEventResponseDTO } from './dtos/distraction-event-response.dto';
+import { DistractionSummaryResponseDTO } from './dtos/distraction-summary-response.dto';
 import { STTAnsweredQuestionDTO } from './dtos/stt-answered-question.dto';
 import { STTQuestionResponseDTO } from './dtos/stt-question-response.dto';
 import { TestSessionResponseDTO } from './dtos/test-session-response.dto';
+import { DistractedEyeEvent } from './entities/distracted-eye-event.entity';
+import { DistractedEyeEventsSummary } from './entities/distracted-eye-events-summary.entity';
 import { STTWordResult } from './entities/stt-word-result.entity';
 import { TestSession } from './entities/test-session.entity';
 
@@ -44,6 +50,12 @@ export class TestSessionService extends ITransactionalService {
 
     @InjectRepository(TestSession)
     private readonly testSessionRepository: Repository<TestSession>,
+
+    @InjectRepository(DistractedEyeEvent)
+    private readonly distractedEyeEventRepository: Repository<DistractedEyeEvent>,
+
+    @InjectRepository(DistractedEyeEventsSummary)
+    private readonly distractedEyeEventsSummaryRepository: Repository<DistractedEyeEventsSummary>,
 
     private readonly tokenGeneratorService: TokenGeneratorService,
   ) {
@@ -370,13 +382,23 @@ export class TestSessionService extends ITransactionalService {
         `Sesi tes dengan ID ${testSessionId} sudah selesai`,
       );
     }
+    // TODO: get distracted eye events
     const sttWordResults: STTWordResult[] =
       await this.sttWordResultRepository.find({
         where: { testSession: { id: testSessionId } },
         relations: ['testSession'],
       });
+    const distractedEyeEvents: DistractedEyeEvent[] =
+      await this.distractedEyeEventRepository.find({
+        where: { testSession: { id: testSessionId } },
+        relations: ['testSession'],
+      });
 
-    testSession.score = testSession.calculateScore(sttWordResults);
+    testSession.score = testSession.calculateScore(
+      sttWordResults,
+      distractedEyeEvents,
+      testSession.passageAtTaken.trim().split(/\s+/).length,
+    );
     testSession.medal = testSession.determineMedal();
     testSession.finishedAt = new Date();
 
@@ -674,5 +696,105 @@ export class TestSessionService extends ITransactionalService {
         `Student ${studentId} scored ${score} on pre-test. Skipped to Level ${targetLevel}.`,
       );
     });
+  }
+
+  public async createDistractionEvent(
+    testSessionId: string,
+    studentId: string,
+    createDistractionEventDTO: CreateDistractionEventDTO,
+  ): Promise<DistractionEventResponseDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Sesi tes dengan ID ${testSessionId} sudah selesai`,
+      );
+    }
+
+    const newDistractionEvent: DistractedEyeEvent =
+      this.distractedEyeEventRepository.create({
+        id: 'DISTRACTEDEYE-' + this.tokenGeneratorService.randomUUIDV7(),
+        testSession: { id: testSessionId } as TestSession,
+        distractionType: createDistractionEventDTO.distractionType,
+        triggerDurationMs: createDistractionEventDTO.triggerDurationMs,
+        occurredAtWord: createDistractionEventDTO.occurAtWord,
+      });
+
+    const savedEvent: DistractedEyeEvent =
+      await this.distractedEyeEventRepository.save(newDistractionEvent);
+
+    return {
+      id: savedEvent.id,
+      distractionType: savedEvent.distractionType,
+      triggerDurationMs: savedEvent.triggerDurationMs,
+      occurredAtWord: savedEvent.occurredAtWord,
+      createdAt: savedEvent.createdAt,
+      updatedAt: savedEvent.updatedAt,
+    } as DistractionEventResponseDTO;
+  }
+
+  public async createDistractionSummary(
+    testSessionId: string,
+    studentId: string,
+    createDistractionSummaryDTO: CreateDistractionSummaryDTO,
+  ): Promise<DistractionSummaryResponseDTO> {
+    const testSession: TestSession = await this.findAndAuthorizeTestSession(
+      testSessionId,
+      studentId,
+    );
+    if (testSession.finishedAt) {
+      throw new ForbiddenException(
+        `Sesi tes dengan ID ${testSessionId} sudah selesai`,
+      );
+    }
+
+    // Check if summary already exists
+    const existingSummary: DistractedEyeEventsSummary | null =
+      await this.distractedEyeEventsSummaryRepository.findOne({
+        where: { testSession: { id: testSessionId } },
+      });
+
+    if (existingSummary) {
+      throw new ForbiddenException(
+        `Ringkasan distraksi untuk sesi tes dengan ID ${testSessionId} sudah pernah dibuat`,
+      );
+    }
+
+    const newSummary: DistractedEyeEventsSummary =
+      this.distractedEyeEventsSummaryRepository.create({
+        id: 'DISTRACTEDSUMMARY-' + this.tokenGeneratorService.randomUUIDV7(),
+        testSession: { id: testSessionId } as TestSession,
+        totalSessionDurationSec:
+          createDistractionSummaryDTO.totalSessionDurationSec,
+        timeBreakdownFocus: createDistractionSummaryDTO.timeBreakdownFocus,
+        timeBreakdownTurning: createDistractionSummaryDTO.timeBreakdownTurning,
+        timeBreakdownGlance: createDistractionSummaryDTO.timeBreakdownGlance,
+        timeBreakdownNotDetected:
+          createDistractionSummaryDTO.timeBreakdownNotDetected,
+        turningTriggersCount: createDistractionSummaryDTO.turningTriggersCount,
+        glanceTriggersCount: createDistractionSummaryDTO.glanceTriggersCount,
+        avgPoseVariance: createDistractionSummaryDTO.avgPoseVariance,
+        longFixationCount: createDistractionSummaryDTO.longFixationCount,
+      });
+
+    const savedSummary: DistractedEyeEventsSummary =
+      await this.distractedEyeEventsSummaryRepository.save(newSummary);
+
+    return {
+      id: savedSummary.id,
+      totalSessionDurationSec: savedSummary.totalSessionDurationSec,
+      timeBreakdownFocus: savedSummary.timeBreakdownFocus,
+      timeBreakdownTurning: savedSummary.timeBreakdownTurning,
+      timeBreakdownGlance: savedSummary.timeBreakdownGlance,
+      timeBreakdownNotDetected: savedSummary.timeBreakdownNotDetected,
+      turningTriggersCount: savedSummary.turningTriggersCount,
+      glanceTriggersCount: savedSummary.glanceTriggersCount,
+      avgPoseVariance: savedSummary.avgPoseVariance,
+      longFixationCount: savedSummary.longFixationCount,
+      createdAt: savedSummary.createdAt,
+      updatedAt: savedSummary.updatedAt,
+    } as DistractionSummaryResponseDTO;
   }
 }
