@@ -69,7 +69,7 @@ $ npm run migration:revert
 For running a newly migration in production, just run this command
 
 ```bash
-$ npm run migration:run:production
+$ npm run migration:run:prod or npm run migration:run
 ```
 
 ## Compile and run the project
