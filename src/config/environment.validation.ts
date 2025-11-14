@@ -35,4 +35,5 @@ export default Joi.object({
 
   OPENROUTER_API_KEY: Joi.string().required(),
   OPENROUTER_BASE_URL: Joi.string().uri().required(),
+  OPENROUTER_MODEL: Joi.string().required(),
 });

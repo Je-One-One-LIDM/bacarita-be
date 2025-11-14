@@ -17,7 +17,9 @@ export class OpenRouterService {
       apiKey: this.configService.get<string>('app.ai.openRouterApiKey'),
       baseURL: this.configService.get<string>('app.ai.openRouterBaseUrl'),
     });
-    this.clientModel = 'openrouter/polaris-alpha';
+    this.clientModel = this.configService.get<string>(
+      'app.ai.openRouterModel',
+    )!;
   }
 
   public async generateQuestionsForPreTest(): Promise<string[]> {

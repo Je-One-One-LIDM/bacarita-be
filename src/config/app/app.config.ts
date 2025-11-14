@@ -12,5 +12,6 @@ export default registerAs('app', () => ({
   ai: {
     openRouterApiKey: process.env.OPENROUTER_API_KEY,
     openRouterBaseUrl: process.env.OPENROUTER_BASE_URL,
+    openRouterModel: process.env.OPENROUTER_MODEL,
   },
 }));
