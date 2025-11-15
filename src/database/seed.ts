@@ -2,6 +2,7 @@
 import { DataSource } from 'typeorm'; // adjust to your config file
 import { connectionSource } from 'src/config/database/typeorm.config';
 import { LevelSeeder } from './seeders/level.seeder';
+import { AdminSeeder } from './seeders/admin.seeder';
 
 async function runSeeders(): Promise<void> {
   const dataSource: DataSource = connectionSource;
@@ -10,6 +11,7 @@ async function runSeeders(): Promise<void> {
   console.log('Database connected.');
 
   await new LevelSeeder(dataSource).run();
+  await new AdminSeeder(dataSource).run();
 
   await dataSource.destroy();
   console.log('Seeding completed.');
