@@ -1,15 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { AdminSeeder } from './seeders/admin.seeder';
 import { LevelSeeder } from './seeders/level.seeder';
 
 @Injectable()
 export class DatabaseSeederService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
+  ) {}
 
   async seedAll(): Promise<{ message: string; success: boolean }> {
     try {
-      await new AdminSeeder(this.dataSource).run();
+      await new AdminSeeder(this.dataSource, this.configService).run();
       await new LevelSeeder(this.dataSource).run();
 
       return {
@@ -42,7 +46,7 @@ export class DatabaseSeederService {
 
   async seedAdmins(): Promise<{ message: string; success: boolean }> {
     try {
-      await new AdminSeeder(this.dataSource).run();
+      await new AdminSeeder(this.dataSource, this.configService).run();
 
       return {
         success: true,
