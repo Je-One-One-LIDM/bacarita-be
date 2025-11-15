@@ -118,6 +118,9 @@ export class TestSession {
     let amsScore: number = 0;
     let adScore: number = 0;
     let avgScore: number = 0;
+    if (sttWordResults.length === 0) {
+      return 0;
+    } // first to be implemented is STT, so if no result, score is 0
 
     for (const result of sttWordResults) {
       if (result.testSession.id === this.id) {
