@@ -1925,7 +1925,6 @@ describe('Student Test Session (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
 
-    // Set low accuracy for bronze medal (50%)
     const firstSttResults = await app
       .get<DataSource>(DataSource)
       .getRepository(STTWordResult)
@@ -1937,7 +1936,7 @@ describe('Student Test Session (e2e)', () => {
       await app
         .get<DataSource>(DataSource)
         .getRepository(STTWordResult)
-        .update(result.id, { accuracy: 49 }); // 49% accuracy for bronze
+        .update(result.id, { accuracy: 49 });
     }
 
     // Finish first test session
@@ -1955,10 +1954,10 @@ describe('Student Test Session (e2e)', () => {
     const level1AfterFirst = levelsAfterFirst.body.data.find(
       (l: any) => l.no === 1,
     );
-    expect(level1AfterFirst.requiredPoints).toBe(11);
+    expect(level1AfterFirst.requiredPoints).toBe(10);
     expect(level1AfterFirst.isCompleted).toBe(false);
-    expect(level1AfterFirst.bronzeCount).toBe(1);
-    expect(level1AfterFirst.silverCount).toBe(0);
+    expect(level1AfterFirst.bronzeCount).toBe(0);
+    expect(level1AfterFirst.silverCount).toBe(1);
     expect(level1AfterFirst.goldCount).toBe(0);
 
     // Second attempt - get gold medal on the same story
@@ -2405,12 +2404,12 @@ describe('Student Test Session (e2e)', () => {
     const sttQuestions = sttResponse.body.data;
     expect(sttQuestions).toBeDefined();
     expect(Array.isArray(sttQuestions)).toBe(true);
-    expect(sttQuestions.length).toBeGreaterThan(0);
+    expect(sttQuestions.length).toBe(15);
 
-    // Answer all STT questions with high accuracy (for gold medal - 80%+)
+    // Answer all STT questions
     for (let i = 0; i < sttQuestions.length; i++) {
       const question = sttQuestions[i];
-      const accuracy = 40 + Math.random() * 5; // Random between 85-95%
+      const accuracy = 20 + Math.random() * 5; // Random between 20-25%
 
       const answerResponse = await requestTestAgent
         .post(
@@ -2442,8 +2441,8 @@ describe('Student Test Session (e2e)', () => {
     expect(finishedSession.finishedAt).not.toBeNull();
     expect(finishedSession.isCompleted).toBe(true);
 
-    // Verify the medal is bronze (since all answers were 40%+ accuracy)
-    expect(finishedSession.medal).toBe(StoryMedal.BRONZE);
+    // Verify the medal is silver (40% stt but no distraction)
+    expect(finishedSession.medal).toBe(StoryMedal.SILVER);
     expect(finishedSession.score).toBeGreaterThanOrEqual(40);
 
     const levelsAfter = await requestTestAgent
@@ -2454,9 +2453,9 @@ describe('Student Test Session (e2e)', () => {
     const level0After = levelsAfter.body.data.find((l: any) => l.no === 0);
     expect(level0After).toBeDefined();
     expect(level0After.goldCount).toBe(0);
-    expect(level0After.silverCount).toBe(0);
-    expect(level0After.bronzeCount).toBe(1);
-    expect(level0After.requiredPoints).toBe(2); // 3 - 1 (bronze medal points)
+    expect(level0After.silverCount).toBe(1);
+    expect(level0After.bronzeCount).toBe(0);
+    expect(level0After.requiredPoints).toBe(1); // 3 - 2 (silver medal points)
     expect(level0After.isCompleted).toBe(false);
 
     // Should be skipped levels, 40 scored is jumped to level 3, level 2 and 1 is skipped

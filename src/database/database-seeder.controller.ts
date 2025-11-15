@@ -52,4 +52,18 @@ export class DatabaseSeederController {
       { message: result.message },
     );
   }
+
+  @Post('admins')
+  @HttpCode(HttpStatus.OK)
+  async seedAdmins(): Promise<DataResponse<{ message: string }>> {
+    this.checkDevelopmentMode();
+
+    const result = await this.seederService.seedAdmins();
+
+    return new DataResponse<{ message: string }>(
+      result.success ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
+      result.message,
+      { message: result.message },
+    );
+  }
 }

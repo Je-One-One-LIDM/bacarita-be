@@ -23,6 +23,11 @@ export default Joi.object({
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES: Joi.string().required(),
 
+  ADMIN_EMAIL: Joi.string().email().required(),
+  ADMIN_USERNAME: Joi.string().required(),
+  ADMIN_PASSWORD: Joi.string().required(),
+  ADMIN_FULL_NAME: Joi.string().required(),
+
   MAIL_HOST: Joi.string().required(),
   MAIL_PORT: Joi.number().port().default(587),
   MAIL_SECURE: Joi.boolean().default(false),

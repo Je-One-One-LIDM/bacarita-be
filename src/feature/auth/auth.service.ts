@@ -6,12 +6,15 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { Admin } from '../users/entities/admin.entity';
 import { Parent } from '../users/entities/parent.entity';
 import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
+import { AdminService } from '../users/admin/admin.service';
 import { ParentService } from '../users/parent/parent.service';
 import { StudentService } from '../users/student/student.service';
 import { TeacherService } from '../users/teacher/teacher.service';
+import { AdminSignInDTO } from './dtos/admin-sign-in.dto';
 import { ParentSignInDTO } from './dtos/parent-sign-in.dto';
 import { StudentSignInDTO } from './dtos/student-sign-in.dto';
 import { TeacherSignInDTO } from './dtos/teacher-sign-in.dto';
@@ -26,12 +29,13 @@ export class AuthService {
     private readonly teacherService: TeacherService,
     private readonly parentService: ParentService,
     private readonly studentService: StudentService,
+    private readonly adminService: AdminService,
   ) {}
 
   public async getProfile(
     userId: string,
     role: AuthRole,
-  ): Promise<Student | Teacher | Parent | null> {
+  ): Promise<Student | Teacher | Parent | Admin | null> {
     if (role === AuthRole.TEACHER) {
       return this.teacherService.findById(userId);
     }
@@ -40,6 +44,9 @@ export class AuthService {
     }
     if (role === AuthRole.PARENT) {
       return this.parentService.findById(userId);
+    }
+    if (role === AuthRole.ADMIN) {
+      return this.adminService.findById(userId);
     }
 
     // if null will throw
@@ -183,6 +190,55 @@ export class AuthService {
 
   public generateJwtToken(user: ICurrentUser): string {
     return this.jwtService.sign(user);
+  }
+
+  public async loginAdmin(
+    adminSignInDto: AdminSignInDTO,
+  ): Promise<ITokenResponse> {
+    let admin: Admin | null = null;
+    if (adminSignInDto.email && adminSignInDto.username) {
+      throw new ForbiddenException();
+    }
+    if (adminSignInDto.email && !adminSignInDto.username) {
+      admin = await this.adminService.findByEmail(adminSignInDto.email);
+    }
+    if (adminSignInDto.username && !adminSignInDto.email) {
+      admin = await this.adminService.findByUsername(adminSignInDto.username);
+    }
+    if (!admin) {
+      throw new UnauthorizedException('Kredensial salah');
+    }
+
+    const isMatch: boolean = await bcrypt.compare(
+      adminSignInDto.password,
+      admin.password,
+    );
+    if (!isMatch) throw new UnauthorizedException('Kredensial salah');
+
+    const currentUser: ICurrentUser = {
+      id: admin.id,
+      email: admin.email,
+      username: admin.username,
+      role: AuthRole.ADMIN,
+    };
+
+    const token: string = this.generateJwtToken(currentUser);
+    admin.token = token;
+    await this.adminService.save(admin);
+
+    const tokenResponse: ITokenResponse = { token: token };
+
+    return tokenResponse;
+  }
+
+  public async logoutAdmin(adminId: string): Promise<void> {
+    const admin: Admin | null = await this.adminService.findById(adminId);
+    if (!admin) throw new UnauthorizedException();
+    if (!admin.token)
+      throw new ForbiddenException('Forbidden, already logged out');
+
+    admin.token = null;
+    await this.adminService.save(admin);
   }
 
   public verifyJwtToken(token: string): ICurrentUser | null {
