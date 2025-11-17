@@ -291,19 +291,37 @@ export class LevelSeeder {
         }
 
         // ---------- STORIES FOR THIS LEVEL ----------
-        for (const storyData of levelData.stories) {
-          const existingStory = await storyRepo.findOne({
-            where: { title: storyData.title },
-          });
+        // Get existing stories for this level
+        const existingStories = await storyRepo.find({
+          where: { level: { id: level.id } },
+        });
+
+        // Update or create stories based on index position
+        for (let i = 0; i < levelData.stories.length; i++) {
+          const storyData = levelData.stories[i];
+          const existingStory = existingStories[i];
 
           if (existingStory) {
+            // Update existing story at this position
             await storyRepo.update(
-              { title: storyData.title },
+              { id: existingStory.id },
               { ...storyData, level },
             );
           } else {
+            // Create new story if it doesn't exist
             const newStory = storyRepo.create({ ...storyData, level });
             await storyRepo.save(newStory);
+          }
+        }
+
+        // Remove extra stories if the seed data has fewer stories than before
+        if (existingStories.length > levelData.stories.length) {
+          for (
+            let i = levelData.stories.length;
+            i < existingStories.length;
+            i++
+          ) {
+            await storyRepo.remove(existingStories[i]);
           }
         }
       }
