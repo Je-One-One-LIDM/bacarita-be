@@ -61,6 +61,9 @@ COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 COPY --chown=node:node package*.json ./
 
+# Copy public directory for level images and other static assets
+COPY --chown=node:node --from=build /usr/src/app/public ./public
+
 # Create logs directory with proper permissions
 RUN mkdir -p /logs && chown node:node /logs
 
