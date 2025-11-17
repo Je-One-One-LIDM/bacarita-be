@@ -114,6 +114,7 @@ export class TestSession {
     sttWordResults: STTWordResult[],
     distractedEyeEvents: DistractedEyeEvent[],
     textLength: number,
+    isPreOrPostTest: boolean,
   ): number {
     let amsScore: number = 0;
     let adScore: number = 0;
@@ -140,9 +141,16 @@ export class TestSession {
       }
     }
 
-    adScore = 100 - distractedCount / (textLength * 0.15);
-    amsScore = amsScore / sttWordResults.length;
-    avgScore = amsScore * 0.6 + adScore * 0.4;
+    if (isPreOrPostTest) {
+      // only AMS score matters
+      amsScore = amsScore / sttWordResults.length;
+      avgScore = amsScore;
+    } else {
+      adScore = 100 - distractedCount / (textLength * 0.15);
+      amsScore = amsScore / sttWordResults.length;
+      avgScore = amsScore * 0.6 + adScore * 0.4;
+    }
+
     return avgScore;
   }
 
