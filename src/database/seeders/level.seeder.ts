@@ -19,7 +19,7 @@ export class LevelSeeder {
           isBonusLevel: false,
           stories: [
             {
-              title: 'Tes Kemampuan Membaca',
+              title: 'Tes Kemampuan Membaca - Pre-Test',
               description:
                 'Tes awal untuk mengetahui kemampuan membaca saat ini. Hasil tes akan membantu menentukan level yang tepat untuk memulai pembelajaran.',
               passage: `Selamat datang di Bacarita!\nKami ingin tahu kemampuanmu membaca.\nIni bukan ujian, jadi santai saja.\nBacalah cerita ini dengan hati-hati.\nLakukan yang terbaik.\nHasil tes ini akan membantu kami menemukan level yang cocok untukmu.\nSetelah selesai, kamu bisa langsung memulai petualangan belajar!\nSelamat mengerjakan!`,
@@ -258,7 +258,7 @@ export class LevelSeeder {
           isBonusLevel: false,
           stories: [
             {
-              title: 'Tes Kemampuan Membaca',
+              title: 'Tes Kemampuan Membaca - Post-Test',
               description:
                 'Tes akhir untuk mengetahui perkembangan kemampuan membaca setelah menyelesaikan level pembelajaran.',
               passage: `Selamat datang di Post-Test Bacarita!\nIni adalah tes akhir untuk melihat sejauh mana kemampuanmu berkembang.\nIni bukan ujian, jadi santai saja.\nBacalah cerita ini dengan hati-hati.\nLakukan yang terbaik.\nSetelah selesai, kamu akan melihat progres belajarmu.\nSelamat mengerjakan!`,

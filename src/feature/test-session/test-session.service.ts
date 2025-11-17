@@ -278,16 +278,19 @@ export class TestSessionService extends ITransactionalService {
         const questionsResponseDTO: STTQuestionResponseDTO[] = [];
         let questions: string[];
 
-        if (testSession.story?.level.no !== 0) {
-          // Not Pre-Test
+        if (
+          testSession.story?.level.no === 0 ||
+          testSession.story?.level.no === 9999
+        ) {
+          // Pre-Test or Post-Test same questions
+          questions =
+            await this.openRouterService.generateQuestionsForPreTest();
+        } else {
+          // Regular Level
           questions =
             await this.openRouterService.generateQuestionsFromStoryPassage(
               testSession.passageAtTaken,
             );
-        } else {
-          // Pre-Test
-          questions =
-            await this.openRouterService.generateQuestionsForPreTest();
         }
 
         for (const question of questions) {
@@ -393,20 +396,52 @@ export class TestSessionService extends ITransactionalService {
         relations: ['testSession'],
       });
 
+    const isPreTest: boolean = testSession.story?.level.no === 0;
+    const isPostTest: boolean = testSession.story?.level.no === 9999;
     testSession.score = testSession.calculateScore(
       sttWordResults,
       distractedEyeEvents,
       testSession.passageAtTaken.trim().split(/\s+/).length,
+      isPreTest || isPostTest,
     );
     testSession.medal = testSession.determineMedal();
     testSession.finishedAt = new Date();
 
     // -- HANDLE PRE-TEST COMPLETION AND LEVEL PROGRESS UPDATES --
-    const isPreTest: boolean = testSession.story?.level.no === 0;
     if (isPreTest) {
       await this.handlePreTestCompletion(testSession, studentId);
     }
     // -- END HANDLE PRE-TEST COMPLETION AND LEVEL PROGRESS UPDATES --
+
+    // -- POST-TEST HANDLING NO PROGRESSION --
+    if (isPostTest) {
+      await this.testSessionRepository.save(testSession);
+
+      const { level, ...storyWithoutLevel } = testSession.story!;
+      const testSessionDTO: TestSessionResponseDTO = {
+        id: testSession.id,
+        student: testSession.student,
+        story: storyWithoutLevel as Story,
+        levelFullName: level.fullName,
+        titleAtTaken: testSession.titleAtTaken,
+        imageAtTaken: testSession.imageAtTaken,
+        imageAtTakenUrl: testSession.imageAtTakenUrl,
+        descriptionAtTaken: testSession.descriptionAtTaken,
+        passageAtTaken: testSession.passageAtTaken,
+        passagesAtTaken: Story.passageToSentences(testSession.passageAtTaken),
+        startedAt: testSession.startedAt,
+        finishedAt: testSession.finishedAt,
+        remainingTimeInSeconds: testSession.remainingTimeInSeconds,
+        medal: testSession.medal,
+        score: testSession.score,
+        isCompleted: !!testSession.finishedAt,
+        createdAt: testSession.createdAt,
+        updatedAt: testSession.updatedAt,
+      };
+
+      return testSessionDTO;
+    }
+    // -- END POST-TEST HANDLING --
 
     // Update Level Progress medal count based on the medal achieved in this Test Session
     const levelProgress: LevelProgress | undefined =
@@ -659,7 +694,7 @@ export class TestSessionService extends ITransactionalService {
       });
 
       for (const level of levels) {
-        if (level.no === 0) continue;
+        if (level.no === 0 || level.no === 9999) continue;
 
         if (level.no <= targetLevel) {
           // Find or create level progress

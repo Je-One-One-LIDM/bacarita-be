@@ -78,7 +78,10 @@ export class LevelsService extends ITransactionalService {
           const newProgress: LevelProgress = levelProgressRepo.create({
             student_id: studentId,
             level_id: level.id,
-            isUnlocked: level.no === 0 || level.no === 1 ? true : false,
+            isUnlocked:
+              level.no === 0 || level.no === 1 || level.no === 9999
+                ? true
+                : false,
           });
           newProgress.level = level;
           await levelProgressRepo.save(newProgress);
@@ -176,7 +179,10 @@ export class LevelsService extends ITransactionalService {
             const newProgress: LevelProgress = levelProgressRepo.create({
               student_id: studentId,
               level_id: level.id,
-              isUnlocked: level.no === 0 || level.no === 1 ? true : false,
+              isUnlocked:
+                level.no === 0 || level.no === 1 || level.no === 9999
+                  ? true
+                  : false,
             });
             newProgress.level = level;
 
