@@ -14,6 +14,7 @@ import { StoryStatus } from '../enum/story-status.enum';
 import { Level } from './level.entity';
 import { LevelProgress } from './level-progress.entity';
 import { StoryMedal } from '../enum/story-medal.enum';
+import { StoryApprovalLog } from './story-approval-log.entity';
 
 @Entity('stories')
 export class Story {
@@ -42,6 +43,12 @@ export class Story {
     default: StoryStatus.WAITING_NEWLY,
   })
   status: StoryStatus = StoryStatus.WAITING_NEWLY;
+
+  @OneToMany(
+    () => StoryApprovalLog,
+    (storyApprovalLog: StoryApprovalLog) => storyApprovalLog.story,
+  )
+  approvalLogs: StoryApprovalLog[];
 
   @OneToMany(() => TestSession, (testSession: TestSession) => testSession.story)
   testSessions: TestSession[];
