@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
 import { Repository } from 'typeorm';
-import { LevelDTO, LevelsOverviewDTO } from './dtos/admin-story-management.dto';
+import {
+  LevelDTO,
+  LevelsOverviewDTO,
+  LevelWithStoriesDTO,
+  StoryDTO,
+} from './dtos/admin-story-management.dto';
 
 @Injectable()
 export class AdminStoryManagementService {
@@ -37,5 +42,44 @@ export class AdminStoryManagementService {
     };
 
     return levelsOverviewDTO;
+  }
+
+  public async getStoriesForLevel(
+    levelId: number,
+  ): Promise<LevelWithStoriesDTO> {
+    const level: Level | null = await this.levelRepository.findOne({
+      where: { id: levelId },
+      relations: ['stories'],
+      order: { no: 'ASC' },
+    });
+
+    if (!level) {
+      throw new NotFoundException(`Level ${levelId} tidak ditemukan.`);
+    }
+
+    const storyDTOs: StoryDTO[] = level.stories.map((story: Story) => ({
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      image: story.image,
+      imageUrl: story.imageUrl,
+      passage: story.passage,
+      sentences: story.passageSentences,
+      status: story.status,
+      createdAt: story.createdAt,
+      updatedAt: story.updatedAt,
+    }));
+
+    const levelWithStoriesDTO: LevelWithStoriesDTO = {
+      id: level.id,
+      no: level.no,
+      name: level.name,
+      fullName: level.fullName,
+      createdAt: level.createdAt,
+      updatedAt: level.updatedAt,
+      stories: storyDTOs,
+    };
+
+    return levelWithStoriesDTO;
   }
 }
