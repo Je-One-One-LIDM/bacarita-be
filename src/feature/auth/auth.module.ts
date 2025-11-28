@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminModule } from '../users/admin/admin.module';
+import { CuratorModule } from '../users/curator/curator.module';
 import { ParentModule } from '../users/parent/parent.module';
 import { StudentModule } from '../users/student/student.module';
 import { TeacherModule } from '../users/teacher/teacher.module';
@@ -26,6 +27,7 @@ import { AuthGuard } from './guards/auth.guard';
     ParentModule,
     StudentModule,
     AdminModule,
+    CuratorModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],

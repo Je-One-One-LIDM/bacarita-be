@@ -28,6 +28,11 @@ export default Joi.object({
   ADMIN_PASSWORD: Joi.string().required(),
   ADMIN_FULL_NAME: Joi.string().required(),
 
+  CURATOR_EMAIL: Joi.string().email().required(),
+  CURATOR_USERNAME: Joi.string().required(),
+  CURATOR_PASSWORD: Joi.string().required(),
+  CURATOR_FULL_NAME: Joi.string().required(),
+
   MAIL_HOST: Joi.string().required(),
   MAIL_PORT: Joi.number().port().default(587),
   MAIL_SECURE: Joi.boolean().default(false),

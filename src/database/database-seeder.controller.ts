@@ -66,4 +66,18 @@ export class DatabaseSeederController {
       { message: result.message },
     );
   }
+
+  @Post('curators')
+  @HttpCode(HttpStatus.OK)
+  async seedCurators(): Promise<DataResponse<{ message: string }>> {
+    this.checkDevelopmentMode();
+
+    const result = await this.seederService.seedCurators();
+
+    return new DataResponse<{ message: string }>(
+      result.success ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
+      result.message,
+      { message: result.message },
+    );
+  }
 }

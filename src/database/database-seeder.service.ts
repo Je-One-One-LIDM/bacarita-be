@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { AdminSeeder } from './seeders/admin.seeder';
+import { CuratorSeeder } from './seeders/curator.seeder';
 import { LevelSeeder } from './seeders/level.seeder';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class DatabaseSeederService {
   async seedAll(): Promise<{ message: string; success: boolean }> {
     try {
       await new AdminSeeder(this.dataSource, this.configService).run();
+      await new CuratorSeeder(this.dataSource, this.configService).run();
       await new LevelSeeder(this.dataSource).run();
 
       return {
@@ -56,6 +58,22 @@ export class DatabaseSeederService {
       return {
         success: false,
         message: `Admin seeding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  async seedCurators(): Promise<{ message: string; success: boolean }> {
+    try {
+      await new CuratorSeeder(this.dataSource, this.configService).run();
+
+      return {
+        success: true,
+        message: 'Curators seeded successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Curator seeding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
