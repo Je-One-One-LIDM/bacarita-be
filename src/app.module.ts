@@ -18,6 +18,7 @@ import { UsersModule } from './feature/users/users.module';
 import { TestSessionModule } from './feature/test-session/test-session.module';
 import { AiModule } from './feature/ai/ai.module';
 import { DashboardModule } from './feature/dashboard/dashboard.module';
+import { StoryManagementModule } from './feature/story-management/story-management.module';
 
 const env: string = process.env.NODE_ENV || 'development';
 
@@ -61,6 +62,8 @@ const env: string = process.env.NODE_ENV || 'development';
     DashboardModule,
 
     DatabaseSeederModule,
+
+    StoryManagementModule,
   ],
 })
 export class AppModule {}
