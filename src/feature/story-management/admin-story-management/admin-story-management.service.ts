@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
+import { StoryStatus } from 'src/feature/levels/enum/story-status.enum';
 import { Repository } from 'typeorm';
 import {
   LevelDTO,
@@ -9,6 +14,13 @@ import {
   LevelWithStoriesDTO,
   StoryDTO,
 } from './dtos/admin-story-management.dto';
+import { CreateStoryDTO } from './dtos/create-story.dto';
+
+const SUPPORTED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+const SUPPORTED_IMAGE_MIME_TYPES_STRING = SUPPORTED_IMAGE_MIME_TYPES.join(', ');
+
+const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024; // 3MB
+const MAX_IMAGE_SIZE_MB = MAX_IMAGE_SIZE_BYTES / (1024 * 1024); // in MB
 
 @Injectable()
 export class AdminStoryManagementService {
@@ -86,5 +98,65 @@ export class AdminStoryManagementService {
     };
 
     return levelWithStoriesDTO;
+  }
+
+  public async createStory(
+    createStoryDTO: CreateStoryDTO,
+    levelId: number,
+    imageCover: Express.Multer.File,
+  ): Promise<StoryDTO> {
+    const level: Level | null = await this.levelRepository.findOne({
+      where: { id: levelId },
+    });
+
+    if (!level) {
+      throw new NotFoundException(`Level ${levelId} tidak ditemukan.`);
+    }
+
+    const imageCoverPath: string = `/public/story-images/${imageCover.filename}`;
+
+    const story: Story = this.storyRepository.create({
+      level: level,
+      title: createStoryDTO.title,
+      image: imageCoverPath,
+      description: createStoryDTO.description,
+      passage: createStoryDTO.passage,
+      status: StoryStatus.WAITING,
+    });
+
+    const savedStory: Story = await this.storyRepository.save(story);
+
+    return {
+      id: savedStory.id,
+      title: savedStory.title,
+      description: savedStory.description,
+      image: savedStory.image,
+      imageUrl: savedStory.imageUrl,
+      passage: savedStory.passage,
+      sentences: savedStory.passageSentences,
+      status: savedStory.status,
+      createdAt: savedStory.createdAt,
+      updatedAt: savedStory.updatedAt,
+    } as StoryDTO;
+  }
+
+  public validateStoryImageCover(imageCover: Express.Multer.File): void {
+    if (!imageCover) {
+      throw new BadRequestException(
+        'Gagal, Gambar cover cerita wajib diunggah.',
+      );
+    }
+
+    if (imageCover.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new BadRequestException(
+        `Gagal, Ukuran gambar cover maksimal ${MAX_IMAGE_SIZE_MB} MB.`,
+      );
+    }
+
+    if (!SUPPORTED_IMAGE_MIME_TYPES.includes(imageCover.mimetype)) {
+      throw new BadRequestException(
+        `Gagal, File gambar harus berformat: ${SUPPORTED_IMAGE_MIME_TYPES_STRING}`,
+      );
+    }
   }
 }
