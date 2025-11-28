@@ -11,6 +11,7 @@ export class LevelDTO {
   no: number;
   name: string;
   fullName: string;
+  storyCount?: number | null | undefined;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -26,14 +26,19 @@ export class AdminStoryManagementService {
 
     const storiesCount: number = await this.storyRepository.count();
 
-    const levelDTOs: LevelDTO[] = levels.map((level: Level) => ({
-      id: level.id,
-      no: level.no,
-      name: level.name,
-      fullName: level.fullName,
-      createdAt: level.createdAt,
-      updatedAt: level.updatedAt,
-    }));
+    const levelDTOs: LevelDTO[] = await Promise.all(
+      levels.map(async (level: Level) => ({
+        id: level.id,
+        no: level.no,
+        name: level.name,
+        fullName: level.fullName,
+        storyCount: await this.storyRepository.count({
+          where: { level: { id: level.id } },
+        }),
+        createdAt: level.createdAt,
+        updatedAt: level.updatedAt,
+      })),
+    );
 
     const levelsOverviewDTO: LevelsOverviewDTO = {
       levels: levelDTOs,
