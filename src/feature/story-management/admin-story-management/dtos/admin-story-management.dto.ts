@@ -1,4 +1,5 @@
 import { StoryStatus } from 'src/feature/levels/enum/story-status.enum';
+import { ApprovalLogDTO } from '../../curator-story-approval/dtos/curator-story-approval.dto';
 
 export class LevelsOverviewDTO {
   levels: LevelDTO[];
@@ -37,4 +38,5 @@ export class StoryDTO {
   status: StoryStatus;
   createdAt: Date;
   updatedAt: Date;
+  approvalLogs?: ApprovalLogDTO[] | null | undefined;
 }

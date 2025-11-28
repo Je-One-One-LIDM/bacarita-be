@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import { join } from 'path';
 import { Level } from 'src/feature/levels/entities/level.entity';
+import { StoryApprovalLog } from 'src/feature/levels/entities/story-approval-log.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
 import { StoryStatus } from 'src/feature/levels/enum/story-status.enum';
 import { Repository } from 'typeorm';
@@ -35,6 +36,8 @@ export class AdminStoryManagementService {
     private readonly levelRepository: Repository<Level>,
     @InjectRepository(Story)
     private readonly storyRepository: Repository<Story>,
+    @InjectRepository(StoryApprovalLog)
+    private readonly storyApprovalLogRepository: Repository<StoryApprovalLog>,
   ) {}
 
   public async getOverview(): Promise<LevelsOverviewDTO> {
@@ -72,7 +75,11 @@ export class AdminStoryManagementService {
   ): Promise<LevelWithStoriesDTO> {
     const level: Level | null = await this.levelRepository.findOne({
       where: { id: levelId },
-      relations: ['stories'],
+      relations: [
+        'stories',
+        'stories.approvalLogs',
+        'stories.approvalLogs.curator',
+      ],
       order: { no: 'ASC' },
     });
 
@@ -91,6 +98,18 @@ export class AdminStoryManagementService {
       status: story.status,
       createdAt: story.createdAt,
       updatedAt: story.updatedAt,
+      approvalLogs: story.approvalLogs?.map((log) => ({
+        id: log.id,
+        storyId: story.id,
+        fromStatus: log.fromStatus,
+        toStatus: log.toStatus,
+        reason: log.reason,
+        curatorId: log.curator?.id ?? null,
+        curatorName: log.curator
+          ? `${log.curator.fullName} ${log.curator.fullName}`
+          : null,
+        createdAt: log.createdAt,
+      })),
     }));
 
     const levelWithStoriesDTO: LevelWithStoriesDTO = {
@@ -211,7 +230,18 @@ export class AdminStoryManagementService {
       story.image = `/public/story-images/${imageCover.filename}`;
     }
 
+    const approvalLog: StoryApprovalLog =
+      this.storyApprovalLogRepository.create({
+        story: story,
+        fromStatus: story.status,
+        toStatus: StoryStatus.WAITING,
+        reason: 'Cerita diperbarui oleh admin.',
+        curator: null,
+      });
+    story.status = StoryStatus.WAITING; // Reset status to WAITING upon update
     const savedStory: Story = await this.storyRepository.save(story);
+
+    await this.storyApprovalLogRepository.save(approvalLog);
 
     return {
       id: savedStory.id,
@@ -221,7 +251,7 @@ export class AdminStoryManagementService {
       imageUrl: savedStory.imageUrl,
       passage: savedStory.passage,
       sentences: savedStory.passageSentences,
-      status: StoryStatus.WAITING, // Reset status to WAITING upon update
+      status: StoryStatus.WAITING,
       createdAt: savedStory.createdAt,
       updatedAt: savedStory.updatedAt,
     } as StoryDTO;
