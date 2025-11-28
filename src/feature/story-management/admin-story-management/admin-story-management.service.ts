@@ -1,9 +1,12 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs';
+import { join } from 'path';
 import { Level } from 'src/feature/levels/entities/level.entity';
 import { Story } from 'src/feature/levels/entities/story.entity';
 import { StoryStatus } from 'src/feature/levels/enum/story-status.enum';
@@ -15,6 +18,7 @@ import {
   StoryDTO,
 } from './dtos/admin-story-management.dto';
 import { CreateStoryDTO } from './dtos/create-story.dto';
+import { UpdateStoryDTO } from './dtos/update-story.dto';
 
 const SUPPORTED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
 const SUPPORTED_IMAGE_MIME_TYPES_STRING = SUPPORTED_IMAGE_MIME_TYPES.join(', ');
@@ -24,6 +28,8 @@ const MAX_IMAGE_SIZE_MB = MAX_IMAGE_SIZE_BYTES / (1024 * 1024); // in MB
 
 @Injectable()
 export class AdminStoryManagementService {
+  private readonly logger = new Logger(AdminStoryManagementService.name);
+
   constructor(
     @InjectRepository(Level)
     private readonly levelRepository: Repository<Level>,
@@ -148,15 +154,112 @@ export class AdminStoryManagementService {
     }
 
     if (imageCover.size > MAX_IMAGE_SIZE_BYTES) {
+      this.deleteStoryImageFromDisk(
+        `/public/story-images/${imageCover.filename}`,
+      );
       throw new BadRequestException(
         `Gagal, Ukuran gambar cover maksimal ${MAX_IMAGE_SIZE_MB} MB.`,
       );
     }
 
     if (!SUPPORTED_IMAGE_MIME_TYPES.includes(imageCover.mimetype)) {
+      this.deleteStoryImageFromDisk(
+        `/public/story-images/${imageCover.filename}`,
+      );
       throw new BadRequestException(
         `Gagal, File gambar harus berformat: ${SUPPORTED_IMAGE_MIME_TYPES_STRING}`,
       );
+    }
+  }
+
+  public async updateStory(
+    storyId: number,
+    updateStoryDTO: UpdateStoryDTO,
+    imageCover?: Express.Multer.File,
+  ): Promise<StoryDTO> {
+    const story: Story | null = await this.storyRepository.findOne({
+      where: { id: storyId },
+    });
+
+    if (!story) {
+      throw new NotFoundException(
+        `Cerita dengan ID ${storyId} tidak ditemukan.`,
+      );
+    }
+
+    // Update fields if provided
+    if (updateStoryDTO.title !== undefined) {
+      story.title = updateStoryDTO.title;
+    }
+
+    if (updateStoryDTO.description !== undefined) {
+      story.description = updateStoryDTO.description;
+    }
+
+    if (updateStoryDTO.passage !== undefined) {
+      story.passage = updateStoryDTO.passage;
+    }
+
+    // Handle image update
+    if (imageCover) {
+      // Delete old image if exists
+      if (story.image) {
+        this.deleteStoryImageFromDisk(story.image);
+      }
+
+      // Set new image path
+      story.image = `/public/story-images/${imageCover.filename}`;
+    }
+
+    const savedStory: Story = await this.storyRepository.save(story);
+
+    return {
+      id: savedStory.id,
+      title: savedStory.title,
+      description: savedStory.description,
+      image: savedStory.image,
+      imageUrl: savedStory.imageUrl,
+      passage: savedStory.passage,
+      sentences: savedStory.passageSentences,
+      status: savedStory.status,
+      createdAt: savedStory.createdAt,
+      updatedAt: savedStory.updatedAt,
+    } as StoryDTO;
+  }
+
+  public async deleteStory(storyId: number): Promise<void> {
+    const story: Story | null = await this.storyRepository.findOne({
+      where: { id: storyId },
+    });
+
+    if (!story) {
+      throw new NotFoundException(
+        `Cerita dengan ID ${storyId} tidak ditemukan.`,
+      );
+    }
+
+    // Delete image from disk if exists
+    if (story.image) {
+      this.deleteStoryImageFromDisk(story.image);
+    }
+
+    await this.storyRepository.remove(story);
+  }
+
+  private deleteStoryImageFromDisk(imagePath: string): void {
+    try {
+      // imagePath is "/public/story-images/filename.jpg"
+      // We need to convert it to actual file system path
+      const relativePath = imagePath.startsWith('/')
+        ? imagePath.substring(1)
+        : imagePath;
+      const absolutePath = join(process.cwd(), relativePath);
+
+      if (fs.existsSync(absolutePath)) {
+        fs.unlinkSync(absolutePath);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to delete image at ${imagePath}:`, error);
     }
   }
 }

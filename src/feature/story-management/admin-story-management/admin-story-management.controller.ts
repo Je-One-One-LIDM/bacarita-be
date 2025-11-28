@@ -1,19 +1,21 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseIntPipe,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { storyImageStorage } from 'src/config/upload/upload.config';
-import { DataResponse } from 'src/core/http/http-response';
+import { DataResponse, MessageResponse } from 'src/core/http/http-response';
 import { Auth } from 'src/feature/auth/decorators/auth.decorator';
 import { AuthRole } from 'src/feature/auth/enums/auth.enum';
 import { AuthGuard } from 'src/feature/auth/guards/auth.guard';
@@ -24,6 +26,7 @@ import {
   StoryDTO,
 } from './dtos/admin-story-management.dto';
 import { CreateStoryDTO } from './dtos/create-story.dto';
+import { UpdateStoryDTO } from './dtos/update-story.dto';
 
 @Controller('admin')
 export class AdminStoryManagementController {
@@ -84,5 +87,43 @@ export class AdminStoryManagementController {
       'Berhasil membuat cerita baru.',
       storyDTO,
     );
+  }
+
+  @UseInterceptors(FileInterceptor('imageCover', storyImageStorage))
+  @Put('stories/:storyId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.ADMIN)
+  public async updateStory(
+    @Param('storyId', ParseIntPipe) storyId: number,
+    @Body() updateStoryDTO: UpdateStoryDTO,
+    @UploadedFile() imageCover?: Express.Multer.File,
+  ): Promise<DataResponse<StoryDTO>> {
+    if (imageCover) {
+      this.adminStoryManagementService.validateStoryImageCover(imageCover);
+    }
+
+    const storyDTO: StoryDTO =
+      await this.adminStoryManagementService.updateStory(
+        storyId,
+        updateStoryDTO,
+        imageCover,
+      );
+    return new DataResponse<StoryDTO>(
+      HttpStatus.OK,
+      'Berhasil mengubah cerita.',
+      storyDTO,
+    );
+  }
+
+  @Delete('stories/:storyId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.ADMIN)
+  public async deleteStory(
+    @Param('storyId', ParseIntPipe) storyId: number,
+  ): Promise<MessageResponse> {
+    await this.adminStoryManagementService.deleteStory(storyId);
+    return new MessageResponse(HttpStatus.OK, 'Berhasil menghapus cerita.');
   }
 }
