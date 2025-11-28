@@ -7,14 +7,17 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Admin } from '../users/entities/admin.entity';
+import { Curator } from '../users/entities/curator.entity';
 import { Parent } from '../users/entities/parent.entity';
 import { Student } from '../users/entities/student.entity';
 import { Teacher } from '../users/entities/teacher.entity';
 import { AdminService } from '../users/admin/admin.service';
+import { CuratorService } from '../users/curator/curator.service';
 import { ParentService } from '../users/parent/parent.service';
 import { StudentService } from '../users/student/student.service';
 import { TeacherService } from '../users/teacher/teacher.service';
 import { AdminSignInDTO } from './dtos/admin-sign-in.dto';
+import { CuratorSignInDTO } from './dtos/curator-sign-in.dto';
 import { ParentSignInDTO } from './dtos/parent-sign-in.dto';
 import { StudentSignInDTO } from './dtos/student-sign-in.dto';
 import { TeacherSignInDTO } from './dtos/teacher-sign-in.dto';
@@ -30,12 +33,13 @@ export class AuthService {
     private readonly parentService: ParentService,
     private readonly studentService: StudentService,
     private readonly adminService: AdminService,
+    private readonly curatorService: CuratorService,
   ) {}
 
   public async getProfile(
     userId: string,
     role: AuthRole,
-  ): Promise<Student | Teacher | Parent | Admin | null> {
+  ): Promise<Student | Teacher | Parent | Admin | Curator | null> {
     if (role === AuthRole.TEACHER) {
       return this.teacherService.findById(userId);
     }
@@ -47,6 +51,9 @@ export class AuthService {
     }
     if (role === AuthRole.ADMIN) {
       return this.adminService.findById(userId);
+    }
+    if (role === AuthRole.CURATOR) {
+      return this.curatorService.findById(userId);
     }
 
     // if null will throw
@@ -239,6 +246,58 @@ export class AuthService {
 
     admin.token = null;
     await this.adminService.save(admin);
+  }
+
+  public async loginCurator(
+    curatorSignInDto: CuratorSignInDTO,
+  ): Promise<ITokenResponse> {
+    let curator: Curator | null = null;
+    if (curatorSignInDto.email && curatorSignInDto.username) {
+      throw new ForbiddenException();
+    }
+    if (curatorSignInDto.email && !curatorSignInDto.username) {
+      curator = await this.curatorService.findByEmail(curatorSignInDto.email);
+    }
+    if (curatorSignInDto.username && !curatorSignInDto.email) {
+      curator = await this.curatorService.findByUsername(
+        curatorSignInDto.username,
+      );
+    }
+    if (!curator) {
+      throw new UnauthorizedException('Kredensial salah');
+    }
+
+    const isMatch: boolean = await bcrypt.compare(
+      curatorSignInDto.password,
+      curator.password,
+    );
+    if (!isMatch) throw new UnauthorizedException('Kredensial salah');
+
+    const currentUser: ICurrentUser = {
+      id: curator.id,
+      email: curator.email,
+      username: curator.username,
+      role: AuthRole.CURATOR,
+    };
+
+    const token: string = this.generateJwtToken(currentUser);
+    curator.token = token;
+    await this.curatorService.save(curator);
+
+    const tokenResponse: ITokenResponse = { token: token };
+
+    return tokenResponse;
+  }
+
+  public async logoutCurator(curatorId: string): Promise<void> {
+    const curator: Curator | null =
+      await this.curatorService.findById(curatorId);
+    if (!curator) throw new UnauthorizedException();
+    if (!curator.token)
+      throw new ForbiddenException('Forbidden, already logged out');
+
+    curator.token = null;
+    await this.curatorService.save(curator);
   }
 
   public verifyJwtToken(token: string): ICurrentUser | null {

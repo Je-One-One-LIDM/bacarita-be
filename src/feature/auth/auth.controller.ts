@@ -12,6 +12,7 @@ import { AuthService } from './auth.service';
 import { Auth } from './decorators/auth.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AdminSignInDTO } from './dtos/admin-sign-in.dto';
+import { CuratorSignInDTO } from './dtos/curator-sign-in.dto';
 import { ParentSignInDTO } from './dtos/parent-sign-in.dto';
 import { StudentSignInDTO } from './dtos/student-sign-in.dto';
 import { TeacherSignInDTO } from './dtos/teacher-sign-in.dto';
@@ -20,6 +21,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { ICurrentUser } from './interfaces/current-user.interfaces';
 import { ITokenResponse } from './interfaces/token-response.interface';
 import { Admin } from '../users/entities/admin.entity';
+import { Curator } from '../users/entities/curator.entity';
 import { Student } from '../users/entities/student.entity';
 import { Parent } from '../users/entities/parent.entity';
 import { Teacher } from '../users/entities/teacher.entity';
@@ -33,14 +35,14 @@ export class AuthController {
   @Auth(AuthRole.ANY)
   public async me(
     @CurrentUser() currentUser: ICurrentUser,
-  ): Promise<DataResponse<Student | Parent | Teacher | Admin>> {
-    const profile: Student | Parent | Teacher | Admin | null =
+  ): Promise<DataResponse<Student | Parent | Teacher | Admin | Curator>> {
+    const profile: Student | Parent | Teacher | Admin | Curator | null =
       await this.authService.getProfile(currentUser.id, currentUser.role);
 
-    return new DataResponse<Student | Parent | Teacher | Admin>(
+    return new DataResponse<Student | Parent | Teacher | Admin | Curator>(
       200,
       `Berhasil mendapatkan data profile ${currentUser.role.toLowerCase()}`,
-      instanceToPlain(profile) as Student | Parent | Teacher | Admin,
+      instanceToPlain(profile) as Student | Parent | Teacher | Admin | Curator,
     );
   }
 
@@ -146,5 +148,31 @@ export class AuthController {
   ): Promise<MessageResponse> {
     await this.authService.logoutAdmin(currentUser.id);
     return new MessageResponse(200, 'Logout berhasil (admin)');
+  }
+
+  @Post('curators/login')
+  @HttpCode(200)
+  public async loginCurator(
+    @Body() curatorSignInDto: CuratorSignInDTO,
+  ): Promise<DataResponse<ITokenResponse>> {
+    const response: ITokenResponse =
+      await this.authService.loginCurator(curatorSignInDto);
+
+    return new DataResponse<ITokenResponse>(
+      200,
+      'Login berhasil (kurator)',
+      instanceToPlain(response) as ITokenResponse,
+    );
+  }
+
+  @Post('curators/logout')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Auth(AuthRole.CURATOR)
+  public async logoutCurator(
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<MessageResponse> {
+    await this.authService.logoutCurator(currentUser.id);
+    return new MessageResponse(200, 'Logout berhasil (kurator)');
   }
 }
