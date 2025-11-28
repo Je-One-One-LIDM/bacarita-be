@@ -221,7 +221,7 @@ export class AdminStoryManagementService {
       imageUrl: savedStory.imageUrl,
       passage: savedStory.passage,
       sentences: savedStory.passageSentences,
-      status: savedStory.status,
+      status: StoryStatus.WAITING, // Reset status to WAITING upon update
       createdAt: savedStory.createdAt,
       updatedAt: savedStory.updatedAt,
     } as StoryDTO;
