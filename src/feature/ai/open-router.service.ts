@@ -107,7 +107,7 @@ export class OpenRouterService {
       3. Alphabet recognition (letter-to-sound awareness)
 
       You will be given a short story passage.
-      From it, generate 4 short reading prompts that are directly based on the story.
+      From it, generate 2 short reading prompts that are directly based on the story.
 
       Guidelines for your prompts:
       - Language: Indonesian
