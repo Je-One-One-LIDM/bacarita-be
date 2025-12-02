@@ -111,6 +111,7 @@ export class OpenRouterService {
 
       Guidelines for your prompts:
       - Language: Indonesian
+      - If the passage is just a alphabet or letter sequence, create prompts focused on letter recognition and phoneme pairing.
       - Each prompt must be a **factual phrase** from the story (no imagination or added detail)
       - Each must be **5 words or fewer**
       - Each must be **phonetically simple and rhythmically clear**
